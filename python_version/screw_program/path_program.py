@@ -324,7 +324,7 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
         all_points.append(points)
     # tree = spatial.KDTree(allPoints)
     # matched_pcds = []
-    # allCenter = np.mean(allPoints, axis=0)
+    allCenter = np.mean(allPoints, axis=0)
     print("\n\n\033[31mPath program: there are %d screws needed to be processed.\033[0m" % len(path_info))
     for i in range(len(path_info)):
         info = path_info[i]
