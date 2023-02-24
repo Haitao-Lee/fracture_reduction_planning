@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # 不清楚为何直接用相对路径读不出来
-cwd = os.getcwd().replace('\\', '/')
+cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
 # the directory that store pcd files
 pcd_dir = cwd + '/data/data0090/face_pointcloud'
