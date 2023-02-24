@@ -91,7 +91,7 @@ def SVD(points):
     normal = u[:, -1]
 
     # 法向量归一化
-    nlen = np.sqrt(np.dot(normal, normal))
+    nlen = np.sqrt(np.dot(normal, normal.T))
     normal = normal / nlen
     # normal 是主方向的方向向量 与PCA最小特征值对应的特征向量是垂直关系
     # u 每一列是一个方向
@@ -109,7 +109,7 @@ class plane_model(object):
     def calc_inliers(self, points, dst_threshold):
         c = self.parameters[0:3]
         n = self.parameters[3:6]
-        dst = abs(np.dot(points - c, n))
+        dst = abs(np.dot(points - c, n.T))
         ind = dst < dst_threshold
         return ind
 
@@ -145,12 +145,12 @@ def ransac_planefit(points,
     # RANSAC 平面拟合
     pts = points.copy()
     num = pts.shape[0]
-    cc = np.mean(pts, axis=0)
+    # cc = np.mean(pts, axis=0)
     iter_max = max_trials
     best_inliers_ratio = 0  # 符合拟合模型的数据的比例
     best_plane_params = None
-    best_inliers = None
-    best_remains = None
+    # best_inliers = None
+    # best_remains = None
     for i in range(iter_max):
         sample_points = None
         while 1:
@@ -208,15 +208,15 @@ def line_3d_relationship(p1, p2, q1, q2):
     cross_q = None
     t1 = None
     t2 = None
-    if np.dot(v1, cross_v1) != 0:
-        t1 = np.dot(q1 - p1, cross_v1)/np.dot(v1, cross_v1)
+    if np.dot(v1, cross_v1.T) != 0:
+        t1 = np.dot(q1 - p1, cross_v1.T)/np.dot(v1, cross_v1.T)
         cross_p = p1 + t1*v1
     else:
-        t1 = np.dot(q1 - p1, v1)/np.dot(v1, v1)
-    if np.dot(v2, cross_v2) != 0:
-        t2 = np.dot(p1 - q1, cross_v2)/np.dot(v2, cross_v2)
+        t1 = np.dot(q1 - p1, v1.T)/np.dot(v1, v1.T)
+    if np.dot(v2, cross_v2.T) != 0:
+        t2 = np.dot(p1 - q1, cross_v2.T)/np.dot(v2, cross_v2.T)
     else:
-        t2 = np.dot(p1 - q1, v2)/np.dot(v2, v2)
+        t2 = np.dot(p1 - q1, v2.T)/np.dot(v2, v2.T)
     cross_p = p1 + t1*v1
     cross_q = q1 + t2*v2
     proj_dist = np.linalg.norm(cross_q - cross_p)

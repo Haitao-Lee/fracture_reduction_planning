@@ -140,10 +140,10 @@ def get_screw_radius(radius=screw_setting.screw_radius):
     return radius
 
 
-def separate_point(points, radius=screw_setting.sp_radius, eps=screw_setting.sp_threshold):
+def separate_point(points, radius=screw_setting.sp_radius, eps1=screw_setting.sp_threshold):
     points = np.array(points)
     all_points = []
-    y_pred = DBSCAN(eps=eps).fit_predict(points)
+    y_pred = DBSCAN(eps=eps1).fit_predict(points)
     y_uniq = np.unique(np.array(y_pred))
     for y in y_uniq:
         indices = np.argwhere(y_pred == y).flatten()
@@ -158,13 +158,49 @@ def separate_point(points, radius=screw_setting.sp_radius, eps=screw_setting.sp_
         min_val = dsp_dsbt[np.argmin(dsp_dsbt)]
         max_val = dsp_dsbt[np.argmax(dsp_dsbt)]
         res = max_val - min_val
+
+        vec_1 = np.array(pca.components_[1, :])
+        vec_1 = vec_1/np.linalg.norm(vec_1)
+        dsp_dsbt_1 = np.dot(ps, vec_1)
+        min_val_1 = dsp_dsbt_1[np.argmin(dsp_dsbt_1)]
+        max_val_1 = dsp_dsbt_1[np.argmax(dsp_dsbt_1)]
+        res_1 = max_val_1 - min_val_1
+        
+        # vec_2 = np.array(pca.components_[2, :])
+        # vec_2 = vec_2/np.linalg.norm(vec_2)
+        # dsp_dsbt_2 = np.dot(ps, vec_2)
+        # min_val_2 = dsp_dsbt_2[np.argmin(dsp_dsbt_2)]
+        # max_val_2 = dsp_dsbt_2[np.argmax(dsp_dsbt_2)]
+        # res_2 = max_val_2 - min_val_2
+        if res_1 < 4*get_screw_radius():
+            continue
         if res > 2 * radius:
             indices1 = np.array(np.where(dsp_dsbt < (min_val + max_val) / 2)).flatten()
             indices2 = np.array(np.where(dsp_dsbt > (min_val + max_val) / 2)).flatten()
             ps1 = ps[indices1]
             ps2 = ps[indices2]
-            all_points.append(ps1)
-            all_points.append(ps2)
+            
+            pca1 = PCA()
+            pca1.fit(ps1)
+            vec1 = np.array(pca1.components_[1, :])
+            vec1 = vec1/np.linalg.norm(vec1)
+            dsp_dsbt1 = np.dot(ps1, vec1)
+            min_val1 = dsp_dsbt1[np.argmin(dsp_dsbt1)]
+            max_val1 = dsp_dsbt1[np.argmax(dsp_dsbt1)]
+            res1 = max_val1 - min_val1
+            
+            pca2 = PCA()
+            pca2.fit(ps2)
+            vec2 = np.array(pca2.components_[1, :])
+            vec2 = vec2/np.linalg.norm(vec2)
+            dsp_dsbt2 = np.dot(ps2, vec2)
+            min_val2 = dsp_dsbt2[np.argmin(dsp_dsbt2)]
+            max_val2 = dsp_dsbt2[np.argmax(dsp_dsbt2)]
+            res2 = max_val2 - min_val2
+            if res1 > 4*get_screw_radius():
+                all_points.append(ps1)
+            if res2 > 4*get_screw_radius():
+                all_points.append(ps2)
             continue
         all_points.append(ps)
     return all_points
@@ -195,7 +231,7 @@ def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
         if points1.shape[0] > 50:
             match_clusters.append([points1, points2])
     refine_cluster = []
-    matched_pcds = []
+    # matched_pcds = []
     for match_cluster in match_clusters:
         points1 = match_cluster[0]
         points2 = match_cluster[1]
@@ -205,10 +241,10 @@ def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
         for points in all_points:
             _, indices = tree.query(points, 1, workers=-1)
             tmp_cluster.append([points, points2[indices]])
-            pcd_ps = np.concatenate([points, points2[indices]],axis=0)
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(pcd_ps)
-            matched_pcds.append(pcd)
+            # pcd_ps = np.concatenate([points, points2[indices]],axis=0)
+            # pcd = o3d.geometry.PointCloud()
+            # pcd.points = o3d.utility.Vector3dVector(pcd_ps)
+            # matched_pcds.append(pcd)
         refine_cluster.append(tmp_cluster)
     # visualization.points_visualization_by_vtk(matched_pcds, screw_setting.color)
     return refine_cluster
@@ -396,38 +432,42 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
                     if length2 > tmp_length2 or length2 == 0:
                         length2 = tmp_length2
                         idx2 = j
-            min_bl = min(best_length1, best_length2)
-            max_bl = max(best_length1, best_length2)
-            min_cl = min(com_cp[idx1], com_cp[idx2])
-            # min_fl = min(com_fp[idx1], com_fp[idx2])
-            # max_cl = max(com_cp[idx1], com_cp[idx2])
-            max_fl = max(com_fp[idx1], com_fp[idx2])
-            if min_cl > min_bl:
-                # if np.linalg.norm(cent + n_dir*com_cp[idx1] - allCenter) > np.linalg.norm(cent - n_dir*com_fp[idx2] - allCenter):
-                if com_cp[idx1] < com_cp[idx2]:
-                    n_dir = - n_dir
-                    length1 = com_cp[idx2]
-                    length2 = com_fp[idx1]
-                path_info_tmp = [path_info[k] for k in range(len(path_info))]
-                del path_info_tmp[i]
-                if np.abs(length1) + np.abs(length2) <= 30 or interference([n_dir, cent, id1, id2, length1, length2], path_info_tmp):
-                    continue
-                best_length1 = length1
-                best_length2 = length2
-                best_dir = n_dir
-            elif max_fl > 2*max_bl and min_cl > 0.6*min_bl and min_cl > dist_eps:
-                # if np.linalg.norm(cent + n_dir*com_cp[idx1] - allCenter) > np.linalg.norm(cent - n_dir*com_fp[idx2] - allCenter):
-                if com_fp[idx1] > com_fp[idx2]:
-                    n_dir = - n_dir
-                    length1 = com_cp[idx2]
-                    length2 = com_fp[idx1]
-                path_info_tmp = [path_info[k] for k in range(len(path_info))]
-                del path_info_tmp[i]
-                if np.abs(length1) + np.abs(length2) <= 30 or interference([n_dir, cent, id1, id2, length1, length2], path_info_tmp):
-                    continue
-                best_length1 = length1 - 3
-                best_length2 = length2
-                best_dir = n_dir
+            # min_bl = min(best_length1, best_length2)
+            # max_bl = max(best_length1, best_length2)
+            # min_cl = min(com_cp[idx1], com_cp[idx2])
+            # # min_fl = min(com_fp[idx1], com_fp[idx2])
+            # # max_cl = max(com_cp[idx1], com_cp[idx2])
+            # max_fl = max(com_fp[idx1], com_fp[idx2])
+            # if min_cl > min_bl:
+            # if np.linalg.norm(cent + n_dir*com_cp[idx1] - allCenter) > np.linalg.norm(cent - n_dir*com_fp[idx2] - allCenter):
+            # if com_cp[idx1] < com_cp[idx2]:
+            #     n_dir = - n_dir
+            #     length1 = com_cp[idx2]
+            #     length2 = com_fp[idx1]
+            # path_info_tmp = [path_info[k] for k in range(len(path_info))]
+            # del path_info_tmp[i]
+            # if np.abs(length1) + np.abs(length2) <= 30 or interference([n_dir, cent, id1, id2, length1, length2], path_info_tmp):
+            #     continue
+            # best_length1 = length1
+            # best_length2 = length2
+            # best_dir = n_dir
+            # elif max_fl > 2*max_bl and min_cl > 0.6*min_bl and min_cl > dist_eps:
+            if idx1 == None or idx2 == None:
+                continue
+            if np.linalg.norm(cent + n_dir*com_cp[idx1] - allCenter) > np.linalg.norm(cent - n_dir*com_fp[idx2] - allCenter):
+            # if com_fp[idx1] > com_fp[idx2]:
+                n_dir = - n_dir
+                length1 = com_cp[idx2]
+                length2 = com_fp[idx1]
+            path_info_tmp = [path_info[k] for k in range(len(path_info))]
+            del path_info_tmp[i]
+            # if isinstance(length1, (int, float)) == False:
+            #     a = 1
+            if np.abs(length1) + np.abs(length2) <= 30 or interference([n_dir, cent, id1, id2, length1, length2], path_info_tmp) or min(length1, length2) < min(best_length1, best_length2):
+                continue
+            best_length1 = length1 - 3
+            best_length2 = length2
+            best_dir = n_dir
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
     # visualization.points_visualization_by_vtk(matched_pcds, screw_setting.color)
     return rf_path_info

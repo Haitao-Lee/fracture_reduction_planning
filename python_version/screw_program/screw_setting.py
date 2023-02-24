@@ -12,13 +12,13 @@ pcd_dir = cwd + '/data/data0090/face_pointcloud'
 stl_dir = cwd + '/data/data0090/stl_after_regis'
 
 # the directory that store npy files
-mtx_dir = cwd + '/data/data0090/trans_matrix'
+# mtx_dir = cwd + '/data/data0014/trans_matrix'
 
-# the path of label file
-label_dir = cwd + '/data/label0090.nii.gz'
+# # the path of label file
+# label_dir = cwd + '/data/label0014.nii.gz'
 
-# the path of image file
-img_dir = cwd + '/data/image0090.nii.gz'
+# # the path of image file
+# img_dir = cwd + '/data/image0014.nii.gz'
 
 # color space
 color = [0,   1,   0,
@@ -27,6 +27,12 @@ color = [0,   1,   0,
          1,   0,   1,
          0,   1,   1,
          1,   1,   1]
+
+# the number of neighborhoods in remove outliers
+nd = 20
+
+# the statistic ratio in remove outliers
+std_rt = 2
 
 # threhold in svm
 svm_threshold = 2
@@ -63,7 +69,7 @@ ransac_eps = 1
 angle_eps = 5
 
 # distance eps in estimate screw length
-dist_eps = 2
+dist_eps = 3
 
 # cone angle in get_cone
 cone_angle = np.pi*4/9

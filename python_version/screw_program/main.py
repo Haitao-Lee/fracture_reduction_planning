@@ -6,6 +6,7 @@ import data_input
 import visualization
 import screw_setting
 import path_program
+import data_prepprocess
 
 
 def initialize(args):
@@ -33,6 +34,7 @@ def initialize(args):
     screw_setting.c_res = args.c_res
     screw_setting.length_eps = args.length_eps
 
+
 def screw_program(args):
     stl_filenames = data_input.get_filenames(args.stl_dir, ".stl")
     pcd_filenames = data_input.get_filenames(args.pcd_dir, ".pcd")
@@ -40,7 +42,9 @@ def screw_program(args):
     
     stls = data_input.getSTLs(stl_filenames)
     all_pcds = data_input.getPCDfromSTL(stl_filenames)
+    all_pcds = data_prepprocess.remove_outliers(all_pcds)
     frac_pcds = data_input.getPCDs(pcd_filenames)
+    frac_pcds = data_prepprocess.remove_outliers(frac_pcds)
     # mtxs = data_input.getNPYs(mtx_filenames)
     # img = data_input.getNIIasNPY(args.img_dir)
     # label = data_input.getNIIasNPY(args.label_dir)
