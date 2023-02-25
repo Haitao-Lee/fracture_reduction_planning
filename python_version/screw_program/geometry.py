@@ -239,10 +239,10 @@ def segment_3d_dist(p1, p2, q1, q2):
         return min(min(l11, l12), min(l21, l22))
     elif p_inside and not q_inside:
         lp = np.linalg.norm(p1 - p2)
-        return min(np.sqrt(l11**2 - ((lp**2 + l11**2 - l21**2)/lp/2)**2),
-                   np.sqrt(l12**2 - ((lp**2 + l12**2 - l22**2)/lp/2)**2))
+        return np.abs(min(np.sqrt(l11**2 - ((lp**2 + l11**2 - l21**2)/lp/2)**2),
+                          np.sqrt(l12**2 - ((lp**2 + l12**2 - l22**2)/lp/2)**2)))
     elif q_inside and not p_inside:
         lq = np.linalg.norm(q1 - q2)
-        return min(np.sqrt(l11**2 - ((lq**2 + l11**2 - l12**2)/lq/2)**2),
-                   np.sqrt(l21**2 - ((lq**2 + l21**2 - l22**2)/lq/2)**2))
+        return np.abs(min(np.sqrt(l11**2 - ((lq**2 + l11**2 - l12**2)/lq/2)**2),
+                          np.sqrt(l21**2 - ((lq**2 + l21**2 - l22**2)/lq/2)**2)))
     return proj_dist

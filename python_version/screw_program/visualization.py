@@ -304,7 +304,7 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
         stl_ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
                                              color[(3 * i + 1) % len(color)],
                                              color[(3 * i + 2) % len(color)])
-        stl_ply_actor.GetProperty().SetOpacity(0.4)
+        stl_ply_actor.GetProperty().SetOpacity(0.7)
         stl_screw_renderer.AddActor(stl_ply_actor)
     for path in path_info:
         path_dir = path[0]
@@ -427,7 +427,7 @@ def compare_screw_program4(stls, path_info1, path_info2, path_info3, path_info4,
         stl_ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
                                              color[(3 * i + 1) % len(color)],
                                              color[(3 * i + 2) % len(color)])
-        stl_ply_actor.GetProperty().SetOpacity(0.4)
+        stl_ply_actor.GetProperty().SetOpacity(0.7)
         renderer1.AddActor(stl_ply_actor)
         renderer2.AddActor(stl_ply_actor)
         renderer3.AddActor(stl_ply_actor)
@@ -528,7 +528,7 @@ def compare_screw_program2(stls, path_info1, path_info2, color=screw_setting.col
         stl_ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
                                              color[(3 * i + 1) % len(color)],
                                              color[(3 * i + 2) % len(color)])
-        stl_ply_actor.GetProperty().SetOpacity(0.4)
+        stl_ply_actor.GetProperty().SetOpacity(0.7)
         renderer1.AddActor(stl_ply_actor)
         renderer2.AddActor(stl_ply_actor)
         

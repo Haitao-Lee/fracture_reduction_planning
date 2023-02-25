@@ -68,8 +68,6 @@ def screw_program(args):
     visualization.compare_screw_program2(stls, path_info, rf_path_info_v4, args.color)
     # visualization.compare_screw_program4(stls, path_info, rf_path_info_v1, rf_path_info_v2, rf_path_info_v4, args.color)
     visualization.stl_pcd_visualization_with_path_by_vtk(stls, frac_pcds, rf_path_info_v4, args.color)
-    
-    # print(np.array(mtxs))
     print(np.array(path_info))
     
     
