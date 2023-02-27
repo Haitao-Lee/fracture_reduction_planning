@@ -60,7 +60,7 @@ def get_screw_implant_position_Chebyshev_center(points1, points2):
     max_val = dsp_dsbt[np.argmax(dsp_dsbt)]
     res = max_val - min_val
     s_r = get_screw_radius()
-    initial_center = np.mean(all_points, axis=0)
+    initial_center = (np.mean(points1, axis=0) + np.mean(points2, axis=0))/2
     if res < 3*s_r:
         return initial_center
     else:
@@ -216,6 +216,8 @@ def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
         all_points.append(points)
     finish_indices = []
     match_clusters = []
+    id1 = None
+    id2 = None
     for i in range(0, len(all_points)):
         finish_indices.append(i)
         points1 = np.empty((1, 3))
@@ -241,7 +243,7 @@ def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
         for points in all_points:
             _, indices = tree.query(points, 1, workers=-1)
             tmp_cluster.append([points, points2[indices]])
-            pcd_ps = np.concatenate([points, points2[indices]],axis=0)
+            pcd_ps = np.concatenate([points, points2[indices]], axis=0)
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(pcd_ps)
             matched_pcds.append(pcd)
@@ -373,7 +375,8 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
         best_dir = dire
         best_length1 = info[4]
         best_length2 = info[5]
-        close_length = 0
+        close_length1 = 0
+        close_length2 = 0
         # tmp = allPoints - np.expand_dims(cent, 0).repeat(allPoints.shape[0], axis=0)
         tmp = path_points - np.expand_dims(cent, 0).repeat(path_points.shape[0], axis=0)
         norm = np.linalg.norm(tmp, axis=1)
@@ -420,7 +423,7 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
                     tmp_com = com_cp[j]
                     com_cp[j] = com_fp[j]
                     com_fp[j] = tmp_com
-                if com_cent[j] > dist_eps:
+                if com_cent[j] > 3*dist_eps:
                     pn = np.dot(dif_cent[j], n_dir)
                     if pn > 0:
                         tmp_length1 = com_cp[j]
@@ -457,13 +460,26 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
             # if com_fp[idx1] > com_fp[idx2]:
             if np.linalg.norm(cent + n_dir*com_cp[idx1] - allCenter) > np.linalg.norm(cent - n_dir*com_fp[idx2] - allCenter):
                 n_dir = - n_dir
-                length1 = com_cp[idx2]
-                length2 = com_fp[idx1]
-            if np.abs(length1) + np.abs(length2) <= 10*dist_eps or interference([n_dir, cent, id1, id2, length1, length2], rf_path_info) or min(com_cp[idx1], com_cp[idx2]) < close_length or min(com_cp[idx1], com_cp[idx2]) < 2*dist_eps:
+                tmp_idx = idx1 
+                idx1 = idx2
+                idx2 = tmp_idx
+                length1 = com_cp[idx1]
+                length2 = com_fp[idx2]
+            continue_ornot = False
+            if np.abs(length1) + np.abs(length2) <= 10*dist_eps or interference([n_dir, cent, id1, id2, length1, length2], rf_path_info) or min(com_cp[idx1], com_cp[idx2]) < 2*dist_eps:
+                continue_ornot = True
+            elif min(com_cp[idx1], com_cp[idx2]) < min(close_length1, close_length2):
+                continue_ornot = True
+                if (com_cp[idx1] >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 - close_length2):
+                    continue_ornot = False
+                elif com_cp[idx2] >= close_length2 and np.abs((com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1])) > 4:
+                    continue_ornot = False
+            if continue_ornot:
                 continue
             best_length1 = length1
             best_length2 = length2
-            close_length = min(com_cp[idx1], com_cp[idx2])
+            close_length1 = com_cp[idx1]
+            close_length2 = com_cp[idx2]
             best_dir = n_dir
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
     # visualization.points_visualization_by_vtk(matched_pcds, screw_setting.color)
@@ -482,8 +498,8 @@ def path_program(frac_pcds, all_pcds):
             points2 = points[1]
             path_dir = get_screw_dir_by_SVM(points1, points2)
             # path_dir = get_screw_dir_by_norm2(points1, points2) # there exist some problems
-            path_center = get_screw_implant_position_Chebyshev_center(points1, points2)
             # path_dir = get_screw_dir_by_ransac(points1, points2)
+            path_center = get_screw_implant_position_Chebyshev_center(points1, points2)
             tmp_p1 = points1[1, :]
             tmp_p2 = points2[1, :]
             id1 = None
