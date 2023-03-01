@@ -44,7 +44,7 @@ gep_threshold = 10
 sp_threshold = 4
 
 # radius in separate_point
-sp_radius = 90
+sp_radius = 60
 
 # radius of screw
 screw_radius = 1.5
@@ -72,7 +72,7 @@ angle_eps = 5
 dist_eps = 3
 
 # cone angle in get_cone
-cone_angle = 4*np.pi/9
+cone_angle = np.pi/3
 
 # radius resolution in get_cone
 r_res = 10

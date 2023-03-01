@@ -139,7 +139,7 @@ class plane_model(object):
 def ransac_planefit(points,
                     ransac_n,
                     max_dst,
-                    max_trials=300,
+                    max_trials=500,
                     stop_inliers_ratio=1.0,
                     initial_inliers=None):
     # RANSAC 平面拟合
@@ -198,6 +198,32 @@ def distace_3d(p1, p2, q1, q2):
 def line_3d_relationship(p1, p2, q1, q2):
     v1 = p1 - p2
     v2 = q1 - q2
+    if np.linalg.norm(v1) == 0 and np.linalg.norm(v2) == 0:
+        return np.linalg.norm(p1 - q1), p1, q1
+    elif np.linalg.norm(v1) == 0:
+        if np.dot(p1 - q1, (p1 - q2).T)/np.linalg.norm(p1 - q1)/np.linalg.norm(p1 - q2) == -1:
+            return 0, p1, p1
+        elif np.dot(p1 - q1, (p1 - q2).T)/np.linalg.norm(p1 - q1)/np.linalg.norm(p1 - q2) == 1:
+            return min(np.linalg.norm(p1 - q1), np.linalg.norm(p1 - q2)), p1, p1
+        else:
+            v1 = p1 - q1
+            normal = np.cross(v1, v2)
+            cross_v2 = np.cross(v2, normal)
+            t = np.dot(cross_v2, v1.T)
+            cross_q = p1 - cross_v2*t
+            return np.abs(t), p1, cross_q
+    elif np.linalg.norm(v2) == 0:
+        if np.dot(q1 - p1, (q1 - p2).T)/np.linalg.norm(q1 - p1)/np.linalg.norm(q1 - p2) == -1:
+            return 0, q1, q1
+        elif np.dot(q1 - p1, (q1 - p2).T)/np.linalg.norm(q1 - p1)/np.linalg.norm(q1 - p2) == 1:
+            return min(np.linalg.norm(q1 - p1), np.linalg.norm(q1 - p2)), q1, q1
+        else:
+            v2 = q1 - p1
+            normal = np.cross(v2, v1)
+            cross_v1 = np.cross(v1, normal)
+            t = np.dot(cross_v1, v2.T)
+            cross_p = q1 - cross_v1*t
+            return np.abs(t), cross_p, q1
     v1 = v1/np.linalg.norm(v1)
     v2 = v2/np.linalg.norm(v2)
     normal = np.cross(v1, v2)
@@ -225,6 +251,8 @@ def line_3d_relationship(p1, p2, q1, q2):
 
 def segment_3d_dist(p1, p2, q1, q2):
     proj_dist, cross_p, cross_q = line_3d_relationship(p1, p2, q1, q2)
+    if np.linalg.norm(p1 - p2)*np.linalg.norm(q1 - q2) == 0:
+        return proj_dist
     p_inside = False
     if (cross_p[0] - p2[0])*(cross_p[0] - p1[0]) <= 0:
         p_inside = True

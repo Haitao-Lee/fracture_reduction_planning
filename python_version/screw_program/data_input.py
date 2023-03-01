@@ -65,5 +65,6 @@ def getPCDfromSTL(fileNames):
         PCD = o3d.geometry.PointCloud()
         PCD.points = mesh_ply.vertices
         PCD.normals = mesh_ply.vertex_normals
+        PCD.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
         PCDs.append(PCD)
     return PCDs
