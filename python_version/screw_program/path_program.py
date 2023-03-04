@@ -61,7 +61,6 @@ def get_screw_implant_position_Chebyshev_center(points1, points2):
     initial_center = np.mean(all_points, axis=0)
     if res < 12*s_r:
         # _, all_tmp_points, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps/5)
-        initial_center = np.mean(all_points, axis=0)
         return initial_center
     else:
         tmp_position = min_val + 6*s_r
@@ -93,7 +92,7 @@ def get_screw_implant_position_Chebyshev_center(points1, points2):
             tmp_min_val2 = tmp_dsp_dsbt2[np.argmin(tmp_dsp_dsbt2)]
             tmp_max_val2 = tmp_dsp_dsbt2[np.argmax(tmp_dsp_dsbt2)]
             tmp_res2 = tmp_max_val2 - tmp_min_val2
-            tmp_res = 0           
+            tmp_res = 0
             if min(tmp_res1, tmp_res2) < 12*s_r:
                 tmp_res = min(tmp_res1, tmp_res2)
             elif min(tmp_res1, tmp_res2) >= 12*s_r:
@@ -382,37 +381,42 @@ def isExplore(pcds, info, radius=screw_setting.screw_radius):
     dire = np.array(info[0])
     cent = np.array(info[1])
 
-    for i in range(1, 2):
-        test_point1 = cent + i*length1*dire/2
-        test_dif1 = np.linalg.norm(all_points - np.expand_dims(test_point1, 0).repeat(all_points.shape[0], axis=0), axis=1)
-        index1 = np.argmin(test_dif1).flatten()[0]
-        c_p1 = all_points[index1].reshape(-1, 3)
-        c_n1 = all_normals[index1].reshape(-1, 3)
-        vec1 = c_p1 - test_point1
-        if np.dot(c_n1, vec1.T).min() < 0:
-            dist1 = np.linalg.norm(vec1, axis=1)
-            return (dist1.max() > 1.5*radius)
-        
-        test_point2 = cent - i*length2*dire/2
-        test_dif2 = np.linalg.norm(all_points - np.expand_dims(test_point2, 0).repeat(all_points.shape[0], axis=0), axis=1)
-        index2 = np.argmin(test_dif2).flatten()[0]
-        c_p2 = all_points[index2].reshape(-1, 3)
-        c_n2 = all_normals[index2].reshape(-1, 3)
-        vec2 = c_p2 - test_point2
-        if np.dot(c_n2, vec2.T).min() < 0:
-            dist2 = np.linalg.norm(vec2, axis=1)
-            return (dist2.max() > 1.5*radius)
+    test_point1 = cent + (length1 - 2*radius)*dire
+    test_dif1 = np.linalg.norm(all_points - np.expand_dims(test_point1, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    index1 = np.argmin(test_dif1).flatten()[0]
+    c_p1 = all_points[index1].reshape(-1, 3)
+    c_n1 = all_normals[index1].reshape(-1, 3)
+    vec1 = c_p1 - test_point1
+    if np.dot(c_n1, vec1.T).min() < 0:
+        dist1 = np.linalg.norm(vec1, axis=1)
+        return (dist1.max() > radius)
+
+    test_point2 = cent - length2*dire/2
+    test_dif2 = np.linalg.norm(all_points - np.expand_dims(test_point2, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    index2 = np.argmin(test_dif2).flatten()[0]
+    c_p2 = all_points[index2].reshape(-1, 3)
+    c_n2 = all_normals[index2].reshape(-1, 3)
+    vec2 = c_p2 - test_point2
+    if np.dot(c_n2, vec2.T).min() < 0:
+        dist2 = np.linalg.norm(vec2, axis=1)
+        return (dist2.max() > radius)
     return False
 
 
-def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=screw_setting.dist_eps):
+def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=screw_setting.screw_radius, dist_eps=screw_setting.dist_eps):
     rf_path_info = []
     allPoints = np.empty((1, 3))
     all_points = []
-    for pcd in pcds:
+    for pcd in all_pcds:
         points = np.asarray(pcd.points)
         allPoints = np.concatenate([allPoints, points], axis=0)
         all_points.append(points)
+    rest_points = []
+    restPoints = np.empty((1, 3))
+    for pcd in rest_pcds:
+        points = np.asarray(pcd.points)
+        restPoints = np.concatenate([restPoints, points], axis=0)
+        rest_points.append(points)
     # tree = spatial.KDTree(allPoints)
     # matched_pcds = []
     allCenter = np.mean(allPoints, axis=0)
@@ -423,7 +427,7 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
         cent = info[1]
         id1 = info[2]
         id2 = info[3]
-        path_points = np.concatenate([all_points[id1], all_points[id2]], axis=0)
+        # path_points = np.concatenate([all_points[id1], all_points[id2]], axis=0)
         cone = get_cone(dire)
         best_dir = dire
         best_length1 = 0
@@ -431,13 +435,16 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
         close_length1 = 0
         close_length2 = 0
         # tmp = allPoints - np.expand_dims(cent, 0).repeat(allPoints.shape[0], axis=0)
-        tmp = path_points - np.expand_dims(cent, 0).repeat(path_points.shape[0], axis=0)
+        # tmp = path_points - np.expand_dims(cent, 0).repeat(path_points.shape[0], axis=0)
+        tmp = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
         norm = np.linalg.norm(tmp, axis=1)
         for j in tqdm(range(len(cone)), desc="\033[31mThe %dth screw:\033[0m" % (i + 1),):
             n_dir = cone[j]
             r_dist = np.sqrt(norm**2 - np.abs(np.dot(tmp, n_dir.T))**2)
             indices = np.argwhere(r_dist < eps).flatten()
-            tmp_points = path_points[indices]
+            tmp_points = restPoints[indices]
+            if indices.shape[0] == 0:
+                continue
             y_pred = DBSCAN(eps=dist_eps).fit_predict(tmp_points)
             y_uniq = np.unique(np.array(y_pred))
             center_list = []
@@ -508,7 +515,7 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
             # best_length2 = length2
             # best_dir = n_dir
             # elif max_fl > 2*max_bl and min_cl > 0.6*min_bl and min_cl > dist_eps:
-            if idx1 is None or idx2 is None:
+            if idx1 is None or idx2 is None or length1 >= 1000 or length2 >= 1000:
                 continue
             # if com_fp[idx1] > com_fp[idx2]:
             if np.linalg.norm(cent + n_dir*com_cp[idx1] - allCenter) > np.linalg.norm(cent - n_dir*com_fp[idx2] - allCenter):
@@ -527,10 +534,10 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
                     break
                 com_cp[idx1] = length1
                 com_fp[idx1] = length1
-                ret, _ = isInterference([n_dir, cent, id1, id2, length1, length2], [cross_info])   
+                ret, _ = isInterference([n_dir, cent, id1, id2, length1, length2], [cross_info])
             if continue_ornot:
                 continue
-            if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 2*dist_eps or isExplore(pcds, [n_dir, cent, id1, id2, length1, length2]):
+            if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 2*dist_eps or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue_ornot = True
             elif min(com_cp[idx1], com_cp[idx2]) < min(close_length1, close_length2):
                 continue_ornot = True
@@ -545,6 +552,7 @@ def get_optimal_info(path_info, pcds, eps=screw_setting.screw_radius, dist_eps=s
             close_length1 = com_cp[idx1]
             close_length2 = com_cp[idx2]
             best_dir = n_dir
+        # if np.abs(length1) + np.abs(length2) >= 10*dist_eps:
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
     # visualization.points_visualization_by_vtk(matched_pcds, screw_setting.color)
     return rf_path_info
@@ -605,7 +613,7 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
         if np.dot(vec, direc.T) < 0:
             vec = -vec
         # rf_direc = (direc + vec)/2
-        rf_direc = vec # + path_info[i][0]
+        rf_direc = vec  #+ path_info[i][0]
         # rf_direc = rf_direc/np.linalg.norm(rf_direc)
         rf_path_info.append([rf_direc, point, id1, id2])
     rf_path_info = add_screw_length(rf_path_info, pcds)
@@ -795,6 +803,5 @@ def relu_refine_dir_v3(ctbt11, ctbt21, ctbt31, ctbt12, ctbt22, ctbt32, vec, vec1
         return (vec12/ctbt_rate22 + vec11/ctbt_rate21 + direc)/np.linalg.norm(vec12/ctbt_rate22 + vec11/ctbt_rate21 + direc)
 
 
-def refine_path_info_v4(path_info, pcds):
-    return get_optimal_info(path_info, pcds)
-
+def refine_path_info_v4(path_info, all_pcds, rest_pcds, rest_pcds_for_explore):
+    return get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore)

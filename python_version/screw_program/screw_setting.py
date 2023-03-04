@@ -82,3 +82,6 @@ c_res = 12  # 30°
 
 # length threshold in refine_path_info
 length_eps = 8*screw_radius
+
+# point cloud down sample
+voxel_size = 2

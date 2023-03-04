@@ -5,7 +5,7 @@ import screw_setting
 import math
 
 
-def points_visualization_by_vtk(PCDs, color):
+def points_visualization_by_vtk(PCDs, color=screw_setting.color):
     renderer = vtk.vtkRenderer()
     for i in range(0, len(PCDs)):
         vtk_points = vtk.vtkPoints()
