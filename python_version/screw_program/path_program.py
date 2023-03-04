@@ -60,7 +60,8 @@ def get_screw_implant_position_Chebyshev_center(points1, points2):
     s_r = get_screw_radius()
     initial_center = np.mean(all_points, axis=0)
     if res < 12*s_r:
-        # _, all_tmp_points, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps/5)
+        # _, all_tmp_points, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps/2)
+        # initial_center = np.mean(all_tmp_points, axis=0)
         return initial_center
     else:
         tmp_position = min_val + 6*s_r
@@ -263,7 +264,7 @@ def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
             pcd.points = o3d.utility.Vector3dVector(pcd_ps)
             matched_pcds.append(pcd)
         refine_cluster.append(tmp_cluster)
-    visualization.points_visualization_by_vtk(matched_pcds, screw_setting.color)
+    visualization.points_visualization_by_vtk(matched_pcds)
     return refine_cluster
 
 
@@ -381,7 +382,7 @@ def isExplore(pcds, info, radius=screw_setting.screw_radius):
     dire = np.array(info[0])
     cent = np.array(info[1])
 
-    test_point1 = cent + (length1 - 2*radius)*dire
+    test_point1 = cent + (length1 - 4*radius)*dire
     test_dif1 = np.linalg.norm(all_points - np.expand_dims(test_point1, 0).repeat(all_points.shape[0], axis=0), axis=1)
     index1 = np.argmin(test_dif1).flatten()[0]
     c_p1 = all_points[index1].reshape(-1, 3)
@@ -576,6 +577,9 @@ def path_program(frac_pcds, all_pcds):
             tmp_p2 = points2[1, :]
             id1 = None
             id2 = None
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(np.concatenate([points1, points2], axis=0))
+            visualization.points_visualization_by_vtk([pcd], center=path_center)
             for j in range(len(all_points)):
                 tmp_points = all_points[j]
                 t1 = np.sum(np.abs(tmp_points - np.expand_dims(tmp_p1, 0).repeat(tmp_points.shape[0], axis=0)), axis=1)

@@ -5,7 +5,7 @@ import screw_setting
 import math
 
 
-def points_visualization_by_vtk(PCDs, color=screw_setting.color):
+def points_visualization_by_vtk(PCDs, center=None, color=screw_setting.color):
     renderer = vtk.vtkRenderer()
     for i in range(0, len(PCDs)):
         vtk_points = vtk.vtkPoints()
@@ -30,6 +30,9 @@ def points_visualization_by_vtk(PCDs, color=screw_setting.color):
                                          color[(3 * i + 1) % len(color)],
                                          color[(3 * i + 2) % len(color)])
         renderer.AddActor(ply_actor)
+    if center is not None:
+        sph_actor = get_sphere_actor(center, 1.5, (1, 0, 0))
+        renderer.AddActor(sph_actor)
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
     rw_style = vtk.vtkInteractorStyleTrackballCamera()
@@ -80,7 +83,7 @@ def stl_visualization_by_vtk(result_stls, origin_stls, color=screw_setting.color
     render_window.Render()
     rw_interactor.Initialize()
     rw_interactor.Start()
-    
+ 
     
 def stl_pcd_visualization_by_vtk(stls, pcds, color=screw_setting.color):
     stl_renderer = vtk.vtkRenderer()
@@ -260,7 +263,7 @@ def get_screw_actor(center, direct, length1, length2, radius=screw_setting.screw
     return actor
 
 
-def get_sphere_actor(center, radius):
+def get_sphere_actor(center, radius, color=(1, 1, 1)):
     sphere = vtk.vtkSphereSource()
     sphere.SetCenter(center)
     sphere.SetRadius(radius)
@@ -271,7 +274,7 @@ def get_sphere_actor(center, radius):
     
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
-    actor.GetProperty().SetColor(1, 1, 1)
+    actor.GetProperty().SetColor(color)
     return actor
 
        
