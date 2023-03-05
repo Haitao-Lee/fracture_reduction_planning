@@ -620,8 +620,12 @@ def path_program(frac_pcds, all_pcds):
     refine_cluster = get_effect_points(frac_pcds)
     path_info = []
     all_points = []
+    frac_points = []
     sizes = [0]
     id_record = []
+    frac_id = []
+    for pcd in frac_pcds:
+        frac_points.append(np.asarray(pcd.points))
     for i in range(len(all_pcds)):
         pcd = all_pcds[i]
         all_points.append(np.asarray(pcd.points))
@@ -644,6 +648,17 @@ def path_program(frac_pcds, all_pcds):
         # pcd2 = o3d.geometry.PointCloud()
         # pcd2.points = o3d.utility.Vector3dVector(points2)
         # visualization.points_visualization_by_vtk([pcd1, pcd2], center=path_center)
+        f_id1 = None
+        f_id2 = None
+        for j in range(len(frac_points)):
+            t1 = np.sum(np.abs(frac_points[j] - np.expand_dims(tmp_p1, 0).repeat(frac_points[j].shape[0], axis=0)), axis=1)
+            t2 = np.sum(np.abs(frac_points[j] - np.expand_dims(tmp_p2, 0).repeat(frac_points[j].shape[0], axis=0)), axis=1)
+            if np.where(t1 == 0)[0].shape[0] != 0:
+                f_id1 = j
+            if np.where(t2 == 0)[0].shape[0] != 0:
+                f_id2 = j
+        frac_id.append([f_id1, f_id2])
+        
         allPoints1 = np.empty((1, 3))
         for j in range(len(all_points)):
             allPoints1 = np.concatenate([allPoints1, all_points[j]], axis=0)
@@ -672,10 +687,7 @@ def path_program(frac_pcds, all_pcds):
                     id2 = 0
                 break
             elif index2 < sizes[j]:
-                if id1 == 0:
-                    id2 = j
-                else:
-                    id2 = j - 1
+                id2 = j - 1
                 break
         path_info.append([path_dir, path_center, id1, id2])
     # refine the number of implanted screws
@@ -687,8 +699,13 @@ def path_program(frac_pcds, all_pcds):
             for j in range(len(path_info)):
                 info = path_info[j]
                 if info[2] == i or info[3] == i:
-                    point1 = refine_cluster[i][0]
-                    point2 = refine_cluster[i][1]
+                    frac_idx = None
+                    for k in range(len(frac_id)):
+                        if frac_id[k][0] == i or frac_id[k][1] == i:
+                            frac_idx = k
+                            break
+                    point1 = refine_cluster[frac_idx][0]
+                    point2 = refine_cluster[frac_idx][1]
                     points = np.concatenate([point1, point2], axis=0)
                     # center = np.mean(points, axis=0)
                     pca = PCA()
