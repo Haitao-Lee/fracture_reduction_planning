@@ -6,10 +6,10 @@ import numpy as np
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
 # the directory that store pcd files
-pcd_dir = cwd + '/data/data0090/face_pointcloud'
+pcd_dir = cwd + '/data/data0085/face_pointcloud'
 
 # the directory that store stl files
-stl_dir = cwd + '/data/data0090/stl_after_regis'
+stl_dir = cwd + '/data/data0085/stl_after_regis'
 
 # the directory that store npy files
 # mtx_dir = cwd + '/data/data0014/trans_matrix'
@@ -38,10 +38,10 @@ std_rt = 2
 svm_threshold = 2
 
 # threshold in get_effect_pcd
-gep_threshold = 10
+gep_threshold = 6
 
 # threhold in separate_point
-sp_threshold = 4
+sp_threshold = 6
 
 # radius in separate_point
 sp_radius = 60
@@ -81,7 +81,7 @@ r_res = 10
 c_res = 12  # 30°
 
 # length threshold in refine_path_info
-length_eps = 8*screw_radius
+length_eps = 20*screw_radius
 
 # point cloud down sample
 voxel_size = 2

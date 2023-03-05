@@ -25,6 +25,7 @@ def pcds_normals_outside(pcds, voxel_size=screw_setting.voxel_size):
     for i in range(len(pcds)):
         pcd = pcds[i]
         pcd = pcd.voxel_down_sample(voxel_size=voxel_size)
+        pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
         all_points = np.concatenate([all_points, np.array(pcd.points)], axis=0)
         all_normals = np.concatenate([all_normals, np.array(pcd.normals)], axis=0)
         allPoints.append(np.array(pcd.points))
@@ -74,7 +75,7 @@ def pcds_normals_outside(pcds, voxel_size=screw_setting.voxel_size):
     return new_pcds
 
         
-def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius):
+def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius-0.3):
     all_points = []
     frac_points = []
     trees = []
@@ -115,7 +116,7 @@ def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius):
     for i in range(len(rest_points)):
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(rest_points[i])
-        pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
+        # pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
         rest_pcds.append(pcd)
     visualization.points_visualization_by_vtk(rest_pcds)
     return rest_pcds

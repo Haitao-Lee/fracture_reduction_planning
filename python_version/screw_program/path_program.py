@@ -45,7 +45,7 @@ def get_screw_dir_by_ransac(points1, points2):
 
 
 # 近似求取切比雪夫中心
-def get_screw_implant_position_Chebyshev_center(points1, points2):
+def get_screw_implant_position_by_Chebyshev_center(points1, points2):
     points1 = np.array(points1)
     points2 = np.array(points2)
     all_points = np.concatenate([points1, points2], axis=0)
@@ -74,11 +74,6 @@ def get_screw_implant_position_Chebyshev_center(points1, points2):
                 tmp_position = tmp_position + s_r
                 continue
             tmp_points = all_points[indices]
-            # pcd = o3d.geometry.PointCloud()
-            # pcd.points = o3d.utility.Vector3dVector(all_points)
-            # tmp_pcd = o3d.geometry.PointCloud()
-            # tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
-            # visualization.points_visualization_by_vtk([tmp_pcd, pcd], screw_setting.color)
             tmp_pca = PCA()
             tmp_pca.fit(tmp_points)
             tmp_vec1 = np.array(tmp_pca.components_[0, :])
@@ -102,11 +97,16 @@ def get_screw_implant_position_Chebyshev_center(points1, points2):
             if tmp_res > max_res or (tmp_res == max_res and indices.shape[0] > last_num):
                 max_res = tmp_res
                 last_num = indices.shape[0]
-                _, tmp_points, _ = geometry.ransac_planefit(tmp_points, ransac_n=3, max_dst=screw_setting.ransac_eps/5)
+                # _, tmp_points, _ = geometry.ransac_planefit(tmp_points, ransac_n=3, max_dst=screw_setting.ransac_eps/5)
                 best_center = np.mean(tmp_points, axis=0)
                 # min_point = tmp_points[np.argmin(tmp_dsp_dsbt)]
                 # max_point = tmp_points[np.argmax(tmp_dsp_dsbt)]
                 # best_center = (min_point + max_point)/2
+            # pcd = o3d.geometry.PointCloud()
+            # pcd.points = o3d.utility.Vector3dVector(all_points)
+            # tmp_pcd = o3d.geometry.PointCloud()
+            # tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
+            # visualization.points_visualization_by_vtk([tmp_pcd, pcd], np.mean(tmp_points, axis=0), screw_setting.color)
         return best_center
 
 
@@ -439,8 +439,8 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
         # tmp = path_points - np.expand_dims(cent, 0).repeat(path_points.shape[0], axis=0)
         tmp = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
         norm = np.linalg.norm(tmp, axis=1)
-        for j in tqdm(range(len(cone)), desc="\033[31mThe %dth screw:\033[0m" % (i + 1),):
-            n_dir = cone[j]
+        for k in tqdm(range(len(cone)), desc="\033[31mThe %dth screw:\033[0m" % (i + 1),):
+            n_dir = cone[k]
             r_dist = np.sqrt(norm**2 - np.abs(np.dot(tmp, n_dir.T))**2)
             indices = np.argwhere(r_dist < eps).flatten()
             tmp_points = restPoints[indices]
@@ -479,23 +479,23 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
             idx2 = None
             if dif_cent.shape[0] <= 1:
                 continue
-            for j in range(dif_cent.shape[0]):
-                if com_fp[j] < com_cp[j]:
-                    tmp_com = com_cp[j]
-                    com_cp[j] = com_fp[j]
-                    com_fp[j] = tmp_com
-                if com_cent[j] > 2*dist_eps:
-                    pn = np.dot(dif_cent[j], n_dir)
+            for k in range(dif_cent.shape[0]):
+                if com_fp[k] < com_cp[k]:
+                    tmp_com = com_cp[k]
+                    com_cp[k] = com_fp[k]
+                    com_fp[k] = tmp_com
+                if com_cent[k] > 2*dist_eps:
+                    pn = np.dot(dif_cent[k], n_dir)
                     if pn > 0:
-                        tmp_length1 = com_cp[j]
+                        tmp_length1 = com_cp[k]
                         if length1 > tmp_length1:
                             length1 = tmp_length1
-                            idx1 = j
+                            idx1 = k
                     elif pn < 0:
-                        tmp_length2 = com_fp[j]
+                        tmp_length2 = com_cp[k]
                         if length2 > tmp_length2:
                             length2 = tmp_length2
-                            idx2 = j
+                            idx2 = k
             # min_bl = min(best_length1, best_length2)
             # max_bl = max(best_length1, best_length2)
             # min_cl = min(com_cp[idx1], com_cp[idx2])
@@ -525,9 +525,12 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                 idx1 = idx2
                 idx2 = tmp_idx
                 length1 = com_cp[idx1]
-                length2 = com_fp[idx2]
+                length2 = min(com_fp[idx2], com_cp[idx2] + 4)
             continue_ornot = False
-            ret, cross_info = isInterference([n_dir, cent, id1, id2, length1, length2], rf_path_info)
+            interference_info = rf_path_info.copy()
+            for k in range(i + 1, len(path_info)):
+                interference_info.append([path_info[k][0], path_info[k][1], path_info[k][2], path_info[k][3], 0, 0])
+            ret, cross_info = isInterference([n_dir, cent, id1, id2, length1, length2], interference_info)
             while ret:
                 length1 = length1*0.9
                 if length1 < 2*dist_eps:
@@ -535,14 +538,14 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                     break
                 com_cp[idx1] = length1
                 com_fp[idx1] = length1
-                ret, _ = isInterference([n_dir, cent, id1, id2, length1, length2], [cross_info])
+                ret, cross_info = isInterference([n_dir, cent, id1, id2, length1, length2], [cross_info])
             if continue_ornot:
                 continue
             if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 2*dist_eps or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue_ornot = True
             elif min(com_cp[idx1], com_cp[idx2]) < min(close_length1, close_length2):
                 continue_ornot = True
-                if (com_cp[idx1] >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 - close_length2):
+                if (com_cp[idx1] >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2):
                     continue_ornot = False
                 elif com_cp[idx2] >= close_length2 and np.abs((com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1])) > 1.5:
                     continue_ornot = False
@@ -572,14 +575,16 @@ def path_program(frac_pcds, all_pcds):
             path_dir = get_screw_dir_by_SVM(points1, points2)
             # path_dir = get_screw_dir_by_norm2(points1, points2) # there exist some problems
             # path_dir = get_screw_dir_by_ransac(points1, points2)
-            path_center = get_screw_implant_position_Chebyshev_center(points1, points2)
+            path_center = get_screw_implant_position_by_Chebyshev_center(points1, points2)
             tmp_p1 = points1[1, :]
             tmp_p2 = points2[1, :]
             id1 = None
             id2 = None
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(np.concatenate([points1, points2], axis=0))
-            visualization.points_visualization_by_vtk([pcd], center=path_center)
+            pcd1 = o3d.geometry.PointCloud()
+            pcd1.points = o3d.utility.Vector3dVector(points1)
+            pcd2 = o3d.geometry.PointCloud()
+            pcd2.points = o3d.utility.Vector3dVector(points2)
+            visualization.points_visualization_by_vtk([pcd1, pcd2], center=path_center)
             for j in range(len(all_points)):
                 tmp_points = all_points[j]
                 t1 = np.sum(np.abs(tmp_points - np.expand_dims(tmp_p1, 0).repeat(tmp_points.shape[0], axis=0)), axis=1)
@@ -624,7 +629,7 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
     for i in range(len(path_info)):
         length = path_info[i][4] + path_info[i][5]
         rf_length = rf_path_info[i][4] + rf_path_info[i][5]
-        if length > length_eps or rf_length < 1.6*length:
+        if length > length_eps or rf_length < 1.2*length:
             rf_path_info[i][0] = path_info[i][0]
             rf_path_info[i][4] = path_info[i][4]
             rf_path_info[i][5] = path_info[i][5]
