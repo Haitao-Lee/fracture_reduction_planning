@@ -110,6 +110,60 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
         return best_center
 
 
+def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2):
+    points1 = np.array(points1)
+    points2 = np.array(points2)
+    all_points = np.concatenate([points1, points2], axis=0)
+    pca = PCA()
+    pca.fit(all_points)
+    vec1 = np.array(pca.components_[0, :])
+    vec1 = vec1/np.linalg.norm(vec1)
+    dsp_dsbt = np.dot(all_points, vec1)
+    min_val = dsp_dsbt[np.argmin(dsp_dsbt)]
+    max_val = dsp_dsbt[np.argmax(dsp_dsbt)]
+    s_r = get_screw_radius()
+    tmp_position = min_val + 6*s_r
+    max_res1 = 0
+    max_res2 = 0
+    best_center1 = np.mean(points1, axis=0)
+    best_center2 = np.mean(points2, axis=0)
+    while tmp_position <= max_val - 6*s_r:
+        indices = np.array(np.where((dsp_dsbt > tmp_position - 6*s_r) & (dsp_dsbt < tmp_position + 6*s_r))).flatten()
+        if indices.shape[0] <= 60:
+            tmp_position = tmp_position + 6*s_r
+            continue
+        tmp_points = all_points[indices]
+        tmp_pca = PCA()
+        tmp_pca.fit(tmp_points)
+        tmp_vec1 = np.array(tmp_pca.components_[0, :])
+        tmp_vec1 = tmp_vec1/np.linalg.norm(tmp_vec1)
+        tmp_vec2 = np.array(tmp_pca.components_[1, :])
+        tmp_vec2 = tmp_vec2/np.linalg.norm(tmp_vec2)
+        tmp_dsp_dsbt1 = np.dot(tmp_points, tmp_vec1)
+        tmp_min_val1 = tmp_dsp_dsbt1[np.argmin(tmp_dsp_dsbt1)]
+        tmp_max_val1 = tmp_dsp_dsbt1[np.argmax(tmp_dsp_dsbt1)]
+        tmp_res1 = tmp_max_val1 - tmp_min_val1
+        tmp_dsp_dsbt2 = np.dot(tmp_points, tmp_vec2)
+        tmp_min_val2 = tmp_dsp_dsbt2[np.argmin(tmp_dsp_dsbt2)]
+        tmp_max_val2 = tmp_dsp_dsbt2[np.argmax(tmp_dsp_dsbt2)]
+        tmp_res2 = tmp_max_val2 - tmp_min_val2
+        tmp_res = 0
+        if min(tmp_res1, tmp_res2) < 12*s_r:
+            tmp_res = min(tmp_res1, tmp_res2)
+        elif min(tmp_res1, tmp_res2) >= 12*s_r:
+            tmp_res = max(tmp_res1, tmp_res2)
+        tmp_position = tmp_position + 6*s_r
+        if tmp_res >= max_res1:
+            max_res2 = max_res1
+            best_center2 = best_center1
+            max_res1 = tmp_res
+            best_center1 = np.mean(tmp_points, axis=0)
+        elif tmp_res >= max_res2:
+            max_res2 = tmp_res
+            best_center2 = np.mean(tmp_points, axis=0)
+    return best_center1, best_center2
+
+
 # def get_screw_implant_position(points1, points2):
 #     points1 = np.array(points1)
 #     points2 = np.array(points2)
@@ -255,15 +309,15 @@ def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
         points2 = match_cluster[1]
         all_points = separate_point(points1)
         tree = spatial.KDTree(points2)
-        tmp_cluster = []
+        # tmp_cluster = []
         for points in all_points:
             _, indices = tree.query(points, 1, workers=-1)
-            tmp_cluster.append([points, points2[indices]])
+            refine_cluster.append([points, points2[indices]])
             pcd_ps = np.concatenate([points, points2[indices]], axis=0)
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(pcd_ps)
             matched_pcds.append(pcd)
-        refine_cluster.append(tmp_cluster)
+        # refine_cluster.append(tmp_cluster)
     visualization.points_visualization_by_vtk(matched_pcds)
     return refine_cluster
 
@@ -566,34 +620,115 @@ def path_program(frac_pcds, all_pcds):
     refine_cluster = get_effect_points(frac_pcds)
     path_info = []
     all_points = []
-    for pcd in frac_pcds:
+    sizes = [0]
+    id_record = []
+    for i in range(len(all_pcds)):
+        pcd = all_pcds[i]
         all_points.append(np.asarray(pcd.points))
+        sizes.append(sizes[i] + np.asarray(pcd.points).shape[0])
+        id_record.append(0)
     for i in range(len(refine_cluster)):
-        for points in refine_cluster[i]:
-            points1 = points[0]
-            points2 = points[1]
-            path_dir = get_screw_dir_by_SVM(points1, points2)
-            # path_dir = get_screw_dir_by_norm2(points1, points2) # there exist some problems
-            # path_dir = get_screw_dir_by_ransac(points1, points2)
-            path_center = get_screw_implant_position_by_Chebyshev_center(points1, points2)
-            tmp_p1 = points1[1, :]
-            tmp_p2 = points2[1, :]
-            id1 = None
-            id2 = None
-            pcd1 = o3d.geometry.PointCloud()
-            pcd1.points = o3d.utility.Vector3dVector(points1)
-            pcd2 = o3d.geometry.PointCloud()
-            pcd2.points = o3d.utility.Vector3dVector(points2)
-            visualization.points_visualization_by_vtk([pcd1, pcd2], center=path_center)
-            for j in range(len(all_points)):
-                tmp_points = all_points[j]
-                t1 = np.sum(np.abs(tmp_points - np.expand_dims(tmp_p1, 0).repeat(tmp_points.shape[0], axis=0)), axis=1)
-                t2 = np.sum(np.abs(tmp_points - np.expand_dims(tmp_p2, 0).repeat(tmp_points.shape[0], axis=0)), axis=1)
-                if np.where(t1 == 0)[0].shape[0] != 0:
-                    id1 = j
-                elif np.where(t2 == 0)[0].shape[0] != 0:
+        points = refine_cluster[i]
+        points1 = points[0]
+        points2 = points[1]
+        path_dir = get_screw_dir_by_SVM(points1, points2)
+        # path_dir = get_screw_dir_by_norm2(points1, points2) # there exist some problems
+        # path_dir = get_screw_dir_by_ransac(points1, points2)
+        path_center = get_screw_implant_position_by_Chebyshev_center(points1, points2)
+        tmp_p1 = points1[1, :]
+        tmp_p2 = points2[1, :]
+        id1 = None
+        id2 = None
+        # pcd1 = o3d.geometry.PointCloud()
+        # pcd1.points = o3d.utility.Vector3dVector(points1)
+        # pcd2 = o3d.geometry.PointCloud()
+        # pcd2.points = o3d.utility.Vector3dVector(points2)
+        # visualization.points_visualization_by_vtk([pcd1, pcd2], center=path_center)
+        allPoints1 = np.empty((1, 3))
+        for j in range(len(all_points)):
+            allPoints1 = np.concatenate([allPoints1, all_points[j]], axis=0)
+        t1 = np.sum(np.abs(allPoints1 - np.expand_dims(tmp_p1, 0).repeat(allPoints1.shape[0], axis=0)), axis=1)
+        index1 = np.argmin(t1).flatten()[0]
+        for j in range(len(sizes)):
+            if index1 == 0:
+                id1 = 0
+                break
+            elif index1 < sizes[j]:
+                id1 = j - 1
+                break
+        allPoints2 = np.empty((1, 3))
+        for j in range(len(all_points)):
+            if j != id1:
+                allPoints2 = np.concatenate([allPoints2, all_points[j]], axis=0)
+            else:
+                allPoints2 = np.concatenate([allPoints2, np.ones([all_points[j].shape[0], 3])*10000], axis=0)
+        t2 = np.linalg.norm(allPoints2 - np.expand_dims(tmp_p2, 0).repeat(allPoints2.shape[0], axis=0), axis=1)
+        index2 = np.argmin(t2).flatten()[0]
+        for j in range(len(sizes)):
+            if index2 == 0:
+                if id1 == 0:
+                    id2 = 1
+                else:
+                    id2 = 0
+                break
+            elif index2 < sizes[j]:
+                if id1 == 0:
                     id2 = j
-            path_info.append([path_dir, path_center, id1, id2])
+                else:
+                    id2 = j - 1
+                break
+        path_info.append([path_dir, path_center, id1, id2])
+    # refine the number of implanted screws
+    for info in path_info:
+        id_record[info[2]] = id_record[info[2]] + 1
+        id_record[info[3]] = id_record[info[3]] + 1
+    for i in range(len(id_record)):
+        if id_record[i] < 2:
+            for j in range(len(path_info)):
+                info = path_info[j]
+                if info[2] == i or info[3] == i:
+                    point1 = refine_cluster[i][0]
+                    point2 = refine_cluster[i][1]
+                    points = np.concatenate([point1, point2], axis=0)
+                    # center = np.mean(points, axis=0)
+                    pca = PCA()
+                    pca.fit(points)
+                    vec = np.array(pca.components_[0, :])
+                    vec = vec/np.linalg.norm(vec)
+                    
+                    # c_dsbt = np.dot(center, vec.T)
+                    dsp_dsbt = np.dot(points, vec.T)
+                    min_val = dsp_dsbt[np.argmin(dsp_dsbt)]
+                    max_val = dsp_dsbt[np.argmax(dsp_dsbt)]
+                    res = max_val - min_val
+                    if res > 18*get_screw_radius():
+                        # dsp_dsbt1 = np.dot(points1, vec)
+                        # # min_val1 = dsp_dsbt1[np.argmin(dsp_dsbt1)]
+                        # # max_val1 = dsp_dsbt1[np.argmax(dsp_dsbt1)]
+                        # indices11 = np.array(np.where(dsp_dsbt1 < c_dsbt)).flatten()
+                        # indices12 = np.array(np.where(dsp_dsbt1 > c_dsbt)).flatten()
+                        
+                        # dsp_dsbt2 = np.dot(points2, vec)
+                        # # min_val2 = dsp_dsbt2[np.argmin(dsp_dsbt2)]
+                        # # max_val2 = dsp_dsbt2[np.argmax(dsp_dsbt2)]
+                        # indices21 = np.array(np.where(dsp_dsbt2 < c_dsbt)).flatten()
+                        # indices22 = np.array(np.where(dsp_dsbt2 > c_dsbt)).flatten()
+                        
+                        # ps11 = points1[indices11]
+                        # ps12 = points1[indices21]
+                        
+                        # ps21 = points2[indices12]
+                        # ps22 = points2[indices22]
+                        
+                        path_center1, path_center2 = get_2_screw_implant_positions_by_Chebyshev_center(point1, point2)
+                        info1 = [info[0], path_center1, info[2], info[3]]
+                        info2 = [info[0], path_center2, info[2], info[3]]
+                        id_record[info[2]] = id_record[info[2]] + 1
+                        id_record[info[3]] = id_record[info[3]] + 1
+                        path_info[j] = info1
+                        j = j + 1
+                        path_info.insert(j, info2)
+                        break
     path_info = add_screw_length(path_info, all_pcds)
     path_info = refine_path_info(path_info, all_pcds)
     return path_info

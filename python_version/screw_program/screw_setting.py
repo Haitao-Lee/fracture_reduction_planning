@@ -6,10 +6,10 @@ import numpy as np
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
 # the directory that store pcd files
-pcd_dir = cwd + '/data/data0085/face_pointcloud'
+pcd_dir = cwd + '/data/data0030/face_pointcloud'
 
 # the directory that store stl files
-stl_dir = cwd + '/data/data0085/stl_after_regis'
+stl_dir = cwd + '/data/data0030/stl_after_regis'
 
 # the directory that store npy files
 # mtx_dir = cwd + '/data/data0014/trans_matrix'
