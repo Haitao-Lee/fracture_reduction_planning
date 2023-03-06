@@ -110,7 +110,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
         return best_center
 
 
-def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2):
+def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2, length_rate):
     points1 = np.array(points1)
     points2 = np.array(points2)
     all_points = np.concatenate([points1, points2], axis=0)
@@ -130,7 +130,7 @@ def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2):
     while tmp_position <= max_val - 6*s_r:
         indices = np.array(np.where((dsp_dsbt > tmp_position - 6*s_r) & (dsp_dsbt < tmp_position + 6*s_r))).flatten()
         if indices.shape[0] <= 60:
-            tmp_position = tmp_position + 6*s_r
+            tmp_position = tmp_position + s_r
             continue
         tmp_points = all_points[indices]
         tmp_pca = PCA()
@@ -152,12 +152,13 @@ def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2):
             tmp_res = min(tmp_res1, tmp_res2)
         elif min(tmp_res1, tmp_res2) >= 12*s_r:
             tmp_res = max(tmp_res1, tmp_res2)
-        tmp_position = tmp_position + 6*s_r
+        tmp_position = tmp_position + s_r
         if tmp_res >= max_res1:
             max_res2 = max_res1
             best_center2 = best_center1
             max_res1 = tmp_res
             best_center1 = np.mean(tmp_points, axis=0)
+            tmp_position = tmp_position + length_rate*s_r
         elif tmp_res >= max_res2:
             max_res2 = tmp_res
             best_center2 = np.mean(tmp_points, axis=0)
@@ -718,7 +719,8 @@ def path_program(frac_pcds, all_pcds):
                     min_val = dsp_dsbt[np.argmin(dsp_dsbt)]
                     max_val = dsp_dsbt[np.argmax(dsp_dsbt)]
                     res = max_val - min_val
-                    if res > 18*get_screw_radius():
+                    length_rate = 18
+                    if res > length_rate*get_screw_radius():
                         # dsp_dsbt1 = np.dot(points1, vec)
                         # # min_val1 = dsp_dsbt1[np.argmin(dsp_dsbt1)]
                         # # max_val1 = dsp_dsbt1[np.argmax(dsp_dsbt1)]
@@ -737,7 +739,7 @@ def path_program(frac_pcds, all_pcds):
                         # ps21 = points2[indices12]
                         # ps22 = points2[indices22]
                         
-                        path_center1, path_center2 = get_2_screw_implant_positions_by_Chebyshev_center(point1, point2)
+                        path_center1, path_center2 = get_2_screw_implant_positions_by_Chebyshev_center(point1, point2, length_rate/2)
                         info1 = [info[0], path_center1, info[2], info[3]]
                         info2 = [info[0], path_center2, info[2], info[3]]
                         id_record[info[2]] = id_record[info[2]] + 1
