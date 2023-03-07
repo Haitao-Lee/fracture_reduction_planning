@@ -415,7 +415,7 @@ def estimate_dist(info1, info2):
     return geometry.segment_3d_dist(f_p1, b_p1, f_p2, b_p2)
 
 
-def isInterference(new_info, path_infos, eps=3*screw_setting.screw_radius):
+def isInterference(new_info, path_infos, eps=2*screw_setting.screw_radius):
     for info in path_infos:
         dist = estimate_dist(new_info, info)
         if dist <= eps:
@@ -551,29 +551,8 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                         if length2 > tmp_length2:
                             length2 = tmp_length2
                             idx2 = k
-            # min_bl = min(best_length1, best_length2)
-            # max_bl = max(best_length1, best_length2)
-            # min_cl = min(com_cp[idx1], com_cp[idx2])
-            # # min_fl = min(com_fp[idx1], com_fp[idx2])
-            # # max_cl = max(com_cp[idx1], com_cp[idx2])
-            # max_fl = max(com_fp[idx1], com_fp[idx2])
-            # if min_cl > min_bl:
-            # if np.linalg.norm(cent + n_dir*com_cp[idx1] - allCenter) > np.linalg.norm(cent - n_dir*com_fp[idx2] - allCenter):
-            # if com_cp[idx1] < com_cp[idx2]:
-            #     n_dir = - n_dir
-            #     length1 = com_cp[idx2]
-            #     length2 = com_fp[idx1]
-            # path_info_tmp = [path_info[k] for k in range(len(path_info))]
-            # del path_info_tmp[i]
-            # if np.abs(length1) + np.abs(length2) <= 30 or interference([n_dir, cent, id1, id2, length1, length2], path_info_tmp):
-            #     continue
-            # best_length1 = length1
-            # best_length2 = length2
-            # best_dir = n_dir
-            # elif max_fl > 2*max_bl and min_cl > 0.6*min_bl and min_cl > dist_eps:
             if idx1 is None or idx2 is None or length1 >= 1000 or length2 >= 1000:
                 continue
-            # if com_fp[idx1] > com_fp[idx2]:
             if np.linalg.norm(cent + n_dir*com_cp[idx1] - allCenter) > np.linalg.norm(cent - n_dir*com_fp[idx2] - allCenter):
                 n_dir = - n_dir
                 tmp_idx = idx1
@@ -604,6 +583,8 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                     continue_ornot = False
                 elif com_cp[idx2] >= close_length2 and np.abs((com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1])) > 1.5:
                     continue_ornot = False
+                # if isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
+                #     continue_ornot = True
             if continue_ornot:
                 continue
             best_length1 = length1

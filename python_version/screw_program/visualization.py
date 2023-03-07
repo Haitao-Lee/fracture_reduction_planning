@@ -575,3 +575,41 @@ def compare_screw_program2(stls, path_info1, path_info2, color=screw_setting.col
     render_window.Render()
     rw_interactor.Initialize()
     rw_interactor.Start()
+    
+    
+def best_result_visualization(stls, path_info, color=screw_setting.color):
+    renderer = vtk.vtkRenderer()
+    for i in range(0, len(stls)):
+        stl = stls[i]
+        stl_ply_mapper = vtk.vtkPolyDataMapper()
+        stl_ply_mapper.SetInputData(stl)
+        stl_ply_mapper.Update()
+
+        stl_ply_actor = vtk.vtkActor()
+        stl_ply_actor.SetMapper(stl_ply_mapper)
+        stl_ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
+                                             color[(3 * i + 1) % len(color)],
+                                             color[(3 * i + 2) % len(color)])
+        stl_ply_actor.GetProperty().SetOpacity(0.7)
+        renderer.AddActor(stl_ply_actor)
+        
+    for i in range(len(path_info)):
+        path_dir = path_info[i][0]
+        path_center = path_info[i][1]
+        length1 = path_info[i][4]
+        length2 = path_info[i][5]
+        # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
+        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_line_actor = get_screw_line_actor(path_center, path_dir)
+        renderer.AddActor(screw_actor)
+        renderer.AddActor(screw_line_actor)
+ 
+    render_window = vtk.vtkRenderWindow()
+    render_window.AddRenderer(renderer)
+    rw_style = vtk.vtkInteractorStyleTrackballCamera()
+    rw_interactor = vtk.vtkRenderWindowInteractor()
+    rw_interactor.SetRenderWindow(render_window)
+    rw_interactor.SetInteractorStyle(rw_style)
+    render_window.Render()
+    rw_interactor.Initialize()
+    rw_interactor.Start()

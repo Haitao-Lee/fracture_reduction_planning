@@ -84,4 +84,4 @@ c_res = 12  # 30°
 length_eps = 20*screw_radius
 
 # point cloud down sample
-voxel_size = 2
+voxel_size = 3
