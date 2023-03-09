@@ -5,7 +5,7 @@ import numpy as np
 # 不清楚为何直接用相对路径读不出来
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
-data_name = 'data0090'
+data_name = 'data0030'
 
 # the directory that store pcd files
 pcd_dir = cwd + '/cases/' + data_name + '/face_pointcloud'
@@ -86,7 +86,7 @@ r_res = 10
 c_res = 12  # 30°
 
 # length threshold in refine_path_info
-length_eps = 20*screw_radius
+length_eps = 10*screw_radius
 
 # point cloud down sample
 voxel_size = 3
