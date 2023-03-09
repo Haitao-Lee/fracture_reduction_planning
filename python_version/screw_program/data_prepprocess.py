@@ -17,8 +17,8 @@ def remove_outliers(pcds, nd=screw_setting.nd, std_rt=screw_setting.std_rt):
 
 
 def pcds_normals_outside(pcds, voxel_size=screw_setting.voxel_size):
-    all_points = np.empty((1, 3))
-    all_normals = np.empty((1, 3))
+    all_points = np.empty((0, 3))
+    all_normals = np.empty((0, 3))
     allPoints = []
     allNormals = []
     sizes = [0]
@@ -75,7 +75,7 @@ def pcds_normals_outside(pcds, voxel_size=screw_setting.voxel_size):
     return new_pcds
 
         
-def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius-0.3):
+def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius):
     all_points = []
     frac_points = []
     trees = []
@@ -91,7 +91,7 @@ def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius-0.3):
         # _, frac_ps, _ = geometry.ransac_planefit(frac_ps, ransac_n=3, max_dst=screw_setting.ransac_eps/10)
         index = None
         min_dist = 1000
-        indices = np.empty((1, 1))
+        indices = np.empty((0, 1))
         for j in range(len(all_points)):
             all_ps = all_points[j]
             _, tmp_indices = trees[j].query(frac_ps, 1, workers=-1)

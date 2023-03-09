@@ -5,11 +5,16 @@ import numpy as np
 # 不清楚为何直接用相对路径读不出来
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
+data_name = 'data0090'
+
 # the directory that store pcd files
-pcd_dir = cwd + '/cases/data0090/face_pointcloud'
+pcd_dir = cwd + '/cases/' + data_name + '/face_pointcloud'
 
 # the directory that store stl files
-stl_dir = cwd + '/cases/data0090/stl_after_regis'
+stl_dir = cwd + '/cases/' + data_name + '/stl_after_regis'
+
+# stl outputpath
+save_stl = cwd + '/export_screw_stl/' + data_name
 
 # the directory that store npy files
 # mtx_dir = cwd + '/data/data0014/trans_matrix'
@@ -72,7 +77,7 @@ angle_eps = 5
 dist_eps = 3
 
 # cone angle in get_cone
-cone_angle = 5*np.pi/12
+cone_angle = np.pi/3
 
 # radius resolution in get_cone
 r_res = 10

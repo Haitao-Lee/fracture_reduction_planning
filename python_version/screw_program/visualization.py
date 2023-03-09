@@ -3,6 +3,7 @@ import vtkmodules.all as vtk
 import numpy as np
 import screw_setting
 import math
+import os
 
 
 def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_radius, color=screw_setting.color):
@@ -251,18 +252,29 @@ def get_screw_actor(center, direct, length1, length2, radius=screw_setting.screw
         screw.AddInputData(thread_tf_pf.GetOutput())
         
     screw.Update()
+    direct = direct/np.linalg.norm(direct)
+    rotate_axis = np.cross([0, -1, 0], direct)
+    angle = math.acos(-direct[1])*180/math.pi
+    
+    tf = vtk.vtkTransform()
+    tf.PostMultiply()
+    tf.RotateWXYZ(angle, rotate_axis[0], rotate_axis[1], rotate_axis[2])
+    tf.Translate((length1 - length/2)*direct + center)
+    tf.Update()
+    
+    tf_polydata = vtk.vtkTransformPolyDataFilter()
+    tf_polydata.SetTransform(tf)
+    tf_polydata.SetInputConnection(screw.GetOutputPort())
+    
     mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(screw.GetOutputPort())
+    mapper.SetInputConnection(tf_polydata.GetOutputPort())
     
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
     actor.GetProperty().SetColor(0.8, 0.8, 0.8)
-    direct = direct/np.linalg.norm(direct)
-    rotate_axis = np.cross([0, -1, 0], direct)
-    angle = math.acos(-direct[1])*180/math.pi
-    actor.RotateWXYZ(angle, rotate_axis[0], rotate_axis[1], rotate_axis[2])
-    actor.AddPosition((length1 - length/2)*direct + center)
-    return actor
+    # actor.RotateWXYZ(angle, rotate_axis[0], rotate_axis[1], rotate_axis[2])
+    # actor.AddPosition((length1 - length/2)*direct + center)
+    return actor, tf_polydata
 
 
 def get_sphere_actor(center, radius, color=(1, 1, 1)):
@@ -280,7 +292,7 @@ def get_sphere_actor(center, radius, color=(1, 1, 1)):
     return actor
 
        
-def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_setting.color):
+def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_setting.color, save=screw_setting.save_stl):
     stl_renderer = vtk.vtkRenderer()
     stl_renderer.SetViewport(0, 0.5, 0.5, 1)
     # stl_renderer.SetBackground(1, 1, 1)
@@ -312,18 +324,31 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
                                              color[(3 * i + 2) % len(color)])
         stl_ply_actor.GetProperty().SetOpacity(0.7)
         stl_screw_renderer.AddActor(stl_ply_actor)
-    for path in path_info:
+        stl_writer = vtk.vtkSTLWriter()
+        stl_writer.SetFileName(save + '/frac%d.stl' % i)
+        if not os.path.exists(save):
+            os.makedirs(save)
+        stl_writer.SetInputData(stl)
+        stl_writer.Write()
+    for i in range(len(path_info)):
+        path = path_info[i]
         path_dir = path[0]
         path_center = path[1]
         length1 = path[4]
         length2 = path[5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, screw_polydata = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         # sphere_actor = get_sphere_actor(path_center, 10)
         stl_screw_renderer.AddActor(screw_actor)
         stl_screw_renderer.AddActor(screw_line_actor)
         # stl_screw_renderer.AddActor(sphere_actor)
+        stl_writer = vtk.vtkSTLWriter()
+        stl_writer.SetFileName(save + '/screw_%d.stl' % i)
+        if not os.path.exists(save):
+            os.makedirs(save)
+        stl_writer.SetInputConnection(screw_polydata.GetOutputPort())
+        stl_writer.Write()
     pcd_renderer = vtk.vtkRenderer()
     pcd_renderer.SetViewport(0.5, 0.5, 1, 1)
     # pcd_renderer.SetBackground(1, 1, 1)
@@ -382,7 +407,7 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
         length1 = path[4]
         length2 = path[5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         pcd_screw_renderer.AddActor(screw_actor)
         pcd_screw_renderer.AddActor(screw_line_actor)
@@ -446,7 +471,7 @@ def compare_screw_program4(stls, path_info1, path_info2, path_info3, path_info4,
         length1 = path_info1[i][4]
         length2 = path_info1[i][5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         renderer1.AddActor(screw_actor)
         renderer1.AddActor(screw_line_actor)
@@ -457,7 +482,7 @@ def compare_screw_program4(stls, path_info1, path_info2, path_info3, path_info4,
         length1 = path_info2[i][4]
         length2 = path_info2[i][5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         renderer2.AddActor(screw_actor)
         renderer2.AddActor(screw_line_actor)
@@ -468,7 +493,7 @@ def compare_screw_program4(stls, path_info1, path_info2, path_info3, path_info4,
         length1 = path_info3[i][4]
         length2 = path_info3[i][5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         renderer3.AddActor(screw_actor)
         renderer3.AddActor(screw_line_actor)
@@ -479,7 +504,7 @@ def compare_screw_program4(stls, path_info1, path_info2, path_info3, path_info4,
         length1 = path_info4[i][4]
         length2 = path_info4[i][5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         # p1 = path_center + path_dir*length1
         # p2 = path_center - path_dir*length2
@@ -545,7 +570,7 @@ def compare_screw_program2(stls, path_info1, path_info2, color=screw_setting.col
         length1 = path_info1[i][4]
         length2 = path_info1[i][5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         renderer1.AddActor(screw_actor)
         renderer1.AddActor(screw_line_actor)
@@ -556,7 +581,7 @@ def compare_screw_program2(stls, path_info1, path_info2, color=screw_setting.col
         length1 = path_info2[i][4]
         length2 = path_info2[i][5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         # p1 = path_center + path_dir*length1
         # p2 = path_center - path_dir*length2
@@ -603,7 +628,7 @@ def best_result_visualization(stls, path_info, color=screw_setting.color):
         length1 = path_info[i][4]
         length2 = path_info[i][5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
-        screw_actor = get_screw_actor(path_center, path_dir, length1, length2)
+        screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
         screw_line_actor = get_screw_line_actor(path_center, path_dir)
         renderer.AddActor(screw_actor)
         renderer.AddActor(screw_line_actor)
