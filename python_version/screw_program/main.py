@@ -56,7 +56,7 @@ def screw_program(args):
     # print(img.shape)
     # print(label.shape)
     
-    # visualization.stl_pcd_visualization_by_vtk(stls, pcds, args.color)
+    visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
     
     path_info = path_program.path_program(frac_pcds, all_pcds)
     

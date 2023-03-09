@@ -59,6 +59,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
     res = max_val - min_val
     s_r = get_screw_radius()
     initial_center = np.mean(all_points, axis=0)
+    tmp_tree = spatial.KDTree(all_points)
     if res < 12*s_r:
         # _, all_tmp_points, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps/2)
         # initial_center = np.mean(all_tmp_points, axis=0)
@@ -102,11 +103,18 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
                 # min_point = tmp_points[np.argmin(tmp_dsp_dsbt)]
                 # max_point = tmp_points[np.argmax(tmp_dsp_dsbt)]
                 # best_center = (min_point + max_point)/2
+            # tmp_indices = tmp_tree.query_ball_point(tmp_points, 0.5, workers=-1)
+            # new_indices = np.empty((1, 1))
+            # for k in range(len(tmp_indices)):
+            #     new_indices = np.concatenate([new_indices, np.array(tmp_indices[k]).reshape(-1, 1)], axis=0)
+            # new_indices = new_indices.astype(np.int).flatten()
+            # tmp_all_points = all_points.copy()
+            # tmp_all_points = np.delete(tmp_all_points, new_indices, axis=0)
             # pcd = o3d.geometry.PointCloud()
-            # pcd.points = o3d.utility.Vector3dVector(all_points)
+            # pcd.points = o3d.utility.Vector3dVector(tmp_all_points)
             # tmp_pcd = o3d.geometry.PointCloud()
             # tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
-            # visualization.points_visualization_by_vtk([tmp_pcd, pcd], np.mean(tmp_points, axis=0), screw_setting.color)
+            # visualization.points_visualization_by_vtk([tmp_pcd, pcd], [np.mean(tmp_points, axis=0)])
         return best_center
 
 
@@ -629,7 +637,7 @@ def path_program(frac_pcds, all_pcds):
         # pcd1.points = o3d.utility.Vector3dVector(points1)
         # pcd2 = o3d.geometry.PointCloud()
         # pcd2.points = o3d.utility.Vector3dVector(points2)
-        # visualization.points_visualization_by_vtk([pcd1, pcd2], center=path_center)
+        # visualization.points_visualization_by_vtk([pcd1, pcd2], [path_center])
         f_id1 = None
         f_id2 = None
         for j in range(len(frac_points)):
@@ -741,9 +749,11 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
         points = np.asarray(pcd.points)
         all_points = np.concatenate([all_points, points], axis=0)
     tree = spatial.KDTree(all_points)
+    centers = []
     for i in range(len(path_info)):
         info = path_info[i]
         point = info[1]
+        centers.append(point)
         direc = info[0]
         id1 = info[2]
         id2 = info[3]
@@ -768,6 +778,7 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
             rf_path_info[i][0] = path_info[i][0]
             rf_path_info[i][4] = path_info[i][4]
             rf_path_info[i][5] = path_info[i][5]
+    visualization.points_visualization_by_vtk(pcds, centers, radius)
     return rf_path_info
 
 

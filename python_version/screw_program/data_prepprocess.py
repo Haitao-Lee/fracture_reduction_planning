@@ -118,7 +118,7 @@ def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius-0.3):
         pcd.points = o3d.utility.Vector3dVector(rest_points[i])
         # pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
         rest_pcds.append(pcd)
-    # visualization.points_visualization_by_vtk(rest_pcds)
+    visualization.points_visualization_by_vtk(rest_pcds)
     return rest_pcds
 
     

@@ -5,7 +5,7 @@ import screw_setting
 import math
 
 
-def points_visualization_by_vtk(PCDs, center=None, color=screw_setting.color):
+def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_radius, color=screw_setting.color):
     renderer = vtk.vtkRenderer()
     for i in range(0, len(PCDs)):
         vtk_points = vtk.vtkPoints()
@@ -30,9 +30,11 @@ def points_visualization_by_vtk(PCDs, center=None, color=screw_setting.color):
                                          color[(3 * i + 1) % len(color)],
                                          color[(3 * i + 2) % len(color)])
         renderer.AddActor(ply_actor)
-    if center is not None:
-        sph_actor = get_sphere_actor(center, 1.5, (1, 0, 0))
-        renderer.AddActor(sph_actor)
+    if centers is not None:
+        for center in centers:
+            sph_actor = get_sphere_actor(center, radius, (1, 0, 0))
+            sph_actor.GetProperty().SetOpacity(0.4)
+            renderer.AddActor(sph_actor)
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
     rw_style = vtk.vtkInteractorStyleTrackballCamera()
@@ -281,6 +283,7 @@ def get_sphere_actor(center, radius, color=(1, 1, 1)):
 def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_setting.color):
     stl_renderer = vtk.vtkRenderer()
     stl_renderer.SetViewport(0, 0.5, 0.5, 1)
+    # stl_renderer.SetBackground(1, 1, 1)
     for i in range(0, len(stls)):
         stl = stls[i]
         stl_ply_mapper = vtk.vtkPolyDataMapper()
@@ -323,6 +326,7 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
         # stl_screw_renderer.AddActor(sphere_actor)
     pcd_renderer = vtk.vtkRenderer()
     pcd_renderer.SetViewport(0.5, 0.5, 1, 1)
+    # pcd_renderer.SetBackground(1, 1, 1)
     for i in range(0, len(pcds)):
         vtk_points = vtk.vtkPoints()
         vtk_cells = vtk.vtkCellArray()
