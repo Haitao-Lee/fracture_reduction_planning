@@ -42,10 +42,11 @@ def screw_program(args):
     
     stls = data_input.getSTLs(stl_filenames)
     all_pcds = data_input.getPCDfromSTL(stl_filenames)
-    # all_pcds = data_prepprocess.remove_outliers(all_pcds)
+    all_pcds = data_prepprocess.remove_outliers(all_pcds)
     # all_pcds = data_prepprocess.pcds_normals_outside(all_pcds)
     frac_pcds = data_input.getPCDs(pcd_filenames)
     rest_pcds = data_prepprocess.get_rest_pcds(all_pcds, frac_pcds)
+    rest_pcds = data_prepprocess.downSample(rest_pcds)
     # rest_pcds_for_explore = data_prepprocess.pcds_normals_outside(rest_pcds)
     # mtxs = data_input.getNPYs(mtx_filenames)
     # img = data_input.getNIIasNPY(args.img_dir)
@@ -56,7 +57,7 @@ def screw_program(args):
     # print(img.shape)
     # print(label.shape)
     
-    visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
+    # visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
     
     path_info = path_program.path_program(frac_pcds, all_pcds)
     
@@ -65,12 +66,11 @@ def screw_program(args):
     # rf_path_info_v2 = path_program.refine_path_info_v2(path_info, all_pcds)
     
     # rf_path_info_v3 = path_program.refine_path_info_v3(path_info, all_pcds)
-    
     rf_path_info_v4 = path_program.refine_path_info_v4(path_info, all_pcds, rest_pcds, rest_pcds)
     visualization.compare_screw_program2(stls, path_info, rf_path_info_v4, args.color)
-    visualization.stl_pcd_visualization_with_path_by_vtk(stls, frac_pcds, rf_path_info_v4, args.color)
+    # visualization.stl_pcd_visualization_with_path_by_vtk(stls, frac_pcds, rf_path_info_v4, args.color)
     visualization.best_result_visualization(stls, rf_path_info_v4, args.color)
-    print(np.array(path_info))
+    print(np.array(rf_path_info_v4))
     
     
 if __name__ == '__main__':

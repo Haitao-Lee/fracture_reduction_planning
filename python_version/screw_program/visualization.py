@@ -271,7 +271,7 @@ def get_screw_actor(center, direct, length1, length2, radius=screw_setting.screw
     
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
-    actor.GetProperty().SetColor(0.8, 0.8, 0.8)
+    actor.GetProperty().SetColor(0.4, 0.4, 0.4)
     # actor.RotateWXYZ(angle, rotate_axis[0], rotate_axis[1], rotate_axis[2])
     # actor.AddPosition((length1 - length/2)*direct + center)
     return actor, tf_polydata
@@ -608,6 +608,7 @@ def compare_screw_program2(stls, path_info1, path_info2, color=screw_setting.col
     
 def best_result_visualization(stls, path_info, color=screw_setting.color):
     renderer = vtk.vtkRenderer()
+    renderer.SetBackground(1, 1, 1)
     for i in range(0, len(stls)):
         stl = stls[i]
         stl_ply_mapper = vtk.vtkPolyDataMapper()
@@ -619,7 +620,7 @@ def best_result_visualization(stls, path_info, color=screw_setting.color):
         stl_ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
                                              color[(3 * i + 1) % len(color)],
                                              color[(3 * i + 2) % len(color)])
-        stl_ply_actor.GetProperty().SetOpacity(0.7)
+        stl_ply_actor.GetProperty().SetOpacity(0.5)
         renderer.AddActor(stl_ply_actor)
         
     for i in range(len(path_info)):
@@ -629,9 +630,9 @@ def best_result_visualization(stls, path_info, color=screw_setting.color):
         length2 = path_info[i][5]
         # screw_cylinder_actor = get_screw_cylinder_actor(path_center, path_dir)
         screw_actor, _ = get_screw_actor(path_center, path_dir, length1, length2)
-        screw_line_actor = get_screw_line_actor(path_center, path_dir)
+        # screw_line_actor = get_screw_line_actor(path_center, path_dir)
         renderer.AddActor(screw_actor)
-        renderer.AddActor(screw_line_actor)
+        # renderer.AddActor(screw_line_actor)
  
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)

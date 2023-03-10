@@ -5,13 +5,13 @@ import numpy as np
 # 不清楚为何直接用相对路径读不出来
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
-data_name = 'data0030'
+data_name = 'data0085'
 
 # the directory that store pcd files
-pcd_dir = cwd + '/cases/' + data_name + '/face_pointcloud'
+pcd_dir = cwd + '/data/' + data_name + '/face_pointcloud'
 
 # the directory that store stl files
-stl_dir = cwd + '/cases/' + data_name + '/stl_after_regis'
+stl_dir = cwd + '/data/' + data_name + '/stl_after_regis'
 
 # stl outputpath
 save_stl = cwd + '/export_screw_stl/' + data_name
@@ -43,7 +43,7 @@ std_rt = 2
 svm_threshold = 2
 
 # threshold in get_effect_pcd
-gep_threshold = 6
+gep_threshold = 3
 
 # threhold in separate_point
 sp_threshold = 6
@@ -61,7 +61,7 @@ screw_length = 30
 line_length_rate = 20
 
 # radius in KDTree searching while refining path_info
-path_refine_radius = 30
+path_refine_radius = 40
 
 # eps in relu_refine_dir
 rrd_eps_max = 0.4
@@ -80,13 +80,16 @@ dist_eps = 3
 cone_angle = np.pi/3
 
 # radius resolution in get_cone
-r_res = 10
+r_res = 15
 
 # circle resolution in get_cone
-c_res = 12  # 30°
+c_res = 18  # 30°
 
 # length threshold in refine_path_info
 length_eps = 10*screw_radius
 
 # point cloud down sample
-voxel_size = 3
+voxel_size = 2
+
+# resolution in explore
+resolution = 8

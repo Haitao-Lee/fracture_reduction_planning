@@ -16,7 +16,16 @@ def remove_outliers(pcds, nd=screw_setting.nd, std_rt=screw_setting.std_rt):
     return new_pcds
 
 
-def pcds_normals_outside(pcds, voxel_size=screw_setting.voxel_size):
+def downSample(pcds, voxel_size=screw_setting.voxel_size):
+    dsp_pcds = []
+    for i in range(len(pcds)):
+        pcd = pcds[i]
+        pcd = pcd.voxel_down_sample(voxel_size=voxel_size)
+        dsp_pcds.append(pcd)
+    return dsp_pcds
+
+
+def pcds_normals_outside(pcds):
     all_points = np.empty((0, 3))
     all_normals = np.empty((0, 3))
     allPoints = []
@@ -24,7 +33,6 @@ def pcds_normals_outside(pcds, voxel_size=screw_setting.voxel_size):
     sizes = [0]
     for i in range(len(pcds)):
         pcd = pcds[i]
-        pcd = pcd.voxel_down_sample(voxel_size=voxel_size)
         pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
         all_points = np.concatenate([all_points, np.array(pcd.points)], axis=0)
         all_normals = np.concatenate([all_normals, np.array(pcd.normals)], axis=0)
@@ -71,11 +79,11 @@ def pcds_normals_outside(pcds, voxel_size=screw_setting.voxel_size):
         pcd.points = o3d.utility.Vector3dVector(allPoints[i])
         pcd.normals = o3d.utility.Vector3dVector(allNormals[i])
         new_pcds.append(pcd)
-    visualization.points_visualization_by_vtk(new_pcds)
+    # visualization.points_visualization_by_vtk(new_pcds)
     return new_pcds
 
         
-def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius):
+def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius - 0.5):
     all_points = []
     frac_points = []
     trees = []
@@ -86,7 +94,7 @@ def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius):
         all_points.append(np.array(all_pcd.points))
         trees.append(spatial.KDTree(np.array(all_pcd.points)))
         rest_points.append(0)
-    for i in tqdm(range(len(frac_points)), desc="\033[31mGenerating effect point clouds:\033[0m",):
+    for i in range(len(frac_points)):#tqdm(range(len(frac_points)), desc="\033[31mGenerating effect point clouds:\033[0m",):
         frac_ps = frac_points[i]
         # _, frac_ps, _ = geometry.ransac_planefit(frac_ps, ransac_n=3, max_dst=screw_setting.ransac_eps/10)
         index = None
@@ -118,7 +126,7 @@ def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius):
         pcd.points = o3d.utility.Vector3dVector(rest_points[i])
         # pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
         rest_pcds.append(pcd)
-    visualization.points_visualization_by_vtk(rest_pcds)
+    # visualization.points_visualization_by_vtk(rest_pcds)
     return rest_pcds
 
     
