@@ -490,7 +490,7 @@ def estimate_dist(info1, info2):
     return geometry.segment_3d_dist(f_p1, b_p1, f_p2, b_p2)
 
 
-def isInterference(new_info, path_infos, eps=2.5*screw_setting.screw_radius):
+def isInterference(new_info, path_infos, eps=4*screw_setting.screw_radius):
     for info in path_infos:
         dist = estimate_dist(new_info, info)
         if dist <= eps:
@@ -498,43 +498,43 @@ def isInterference(new_info, path_infos, eps=2.5*screw_setting.screw_radius):
     return False, None
 
 
-def isExplore(pcds, info, radius=screw_setting.screw_radius):
-    length1 = info[4]
-    length2 = info[5]
-    length = length1 + length2
-    if length < 20*radius:
-        return False
-    all_points = np.empty((0, 3))
-    all_normals = np.empty((0, 3))
-    for pcd in pcds:
-        all_points = np.concatenate([all_points, np.array(pcd.points)], axis=0)
-        all_normals = np.concatenate([all_normals, np.array(pcd.normals)], axis=0)
-    dire = np.array(info[0])
-    cent = np.array(info[1])
+# def isExplore(pcds, info, radius=screw_setting.screw_radius):
+#     length1 = info[4]
+#     length2 = info[5]
+#     length = length1 + length2
+#     if length < 20*radius:
+#         return False
+#     all_points = np.empty((0, 3))
+#     all_normals = np.empty((0, 3))
+#     for pcd in pcds:
+#         all_points = np.concatenate([all_points, np.array(pcd.points)], axis=0)
+#         all_normals = np.concatenate([all_normals, np.array(pcd.normals)], axis=0)
+#     dire = np.array(info[0])
+#     cent = np.array(info[1])
 
-    test_point1 = cent + (length1 - 4*radius)*dire
-    test_dif1 = np.linalg.norm(all_points - np.expand_dims(test_point1, 0).repeat(all_points.shape[0], axis=0), axis=1)
-    index1 = np.argmin(test_dif1).flatten()[0]
-    c_p1 = all_points[index1].reshape(-1, 3)
-    c_n1 = all_normals[index1].reshape(-1, 3)
-    vec1 = c_p1 - test_point1
-    if np.dot(c_n1, vec1.T).min() < 0:
-        dist1 = np.linalg.norm(vec1, axis=1)
-        return (dist1.max() > radius)
+#     test_point1 = cent + (length1 - 4*radius)*dire
+#     test_dif1 = np.linalg.norm(all_points - np.expand_dims(test_point1, 0).repeat(all_points.shape[0], axis=0), axis=1)
+#     index1 = np.argmin(test_dif1).flatten()[0]
+#     c_p1 = all_points[index1].reshape(-1, 3)
+#     c_n1 = all_normals[index1].reshape(-1, 3)
+#     vec1 = c_p1 - test_point1
+#     if np.dot(c_n1, vec1.T).min() < 0:
+#         dist1 = np.linalg.norm(vec1, axis=1)
+#         return (dist1.max() > radius)
 
-    test_point2 = cent - length2*dire/2
-    test_dif2 = np.linalg.norm(all_points - np.expand_dims(test_point2, 0).repeat(all_points.shape[0], axis=0), axis=1)
-    index2 = np.argmin(test_dif2).flatten()[0]
-    c_p2 = all_points[index2].reshape(-1, 3)
-    c_n2 = all_normals[index2].reshape(-1, 3)
-    vec2 = c_p2 - test_point2
-    if np.dot(c_n2, vec2.T).min() < 0:
-        dist2 = np.linalg.norm(vec2, axis=1)
-        return (dist2.max() > radius)
-    return False
+#     test_point2 = cent - length2*dire/2
+#     test_dif2 = np.linalg.norm(all_points - np.expand_dims(test_point2, 0).repeat(all_points.shape[0], axis=0), axis=1)
+#     index2 = np.argmin(test_dif2).flatten()[0]
+#     c_p2 = all_points[index2].reshape(-1, 3)
+#     c_n2 = all_normals[index2].reshape(-1, 3)
+#     vec2 = c_p2 - test_point2
+#     if np.dot(c_n2, vec2.T).min() < 0:
+#         dist2 = np.linalg.norm(vec2, axis=1)
+#         return (dist2.max() > radius)
+#     return False
 
 
-def isExploreV2(pcds, info, resol=screw_setting.resolution, radius=8*screw_setting.screw_radius):
+def isExplore(pcds, info, res=screw_setting.resolution, radius=10*screw_setting.screw_radius):
     length1 = info[4]
     length2 = info[5]
     all_points = np.empty((0, 3))
@@ -553,30 +553,20 @@ def isExploreV2(pcds, info, resol=screw_setting.resolution, radius=8*screw_setti
     dire4 = dire1 + dire2
     dire4 = dire4/np.linalg.norm(dire4)
     dires = [dire1, dire2, dire3, dire4]
-    for res in range(1, resol + 1):
-        test_point1 = cent + res*(length1)*dire/resol
-        # ball_centers = []
+    for j in range(1, res):
+        test_point1 = cent + j*(length1)*dire/res
         for i in range(0, 4):
             tmp_center = test_point1 + radius*dires[i]
             tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
-            indices = np.array(np.where(tmp_norm < radius - get_screw_radius())).flatten()
+            indices = np.array(np.where(tmp_norm < radius)).flatten()
             if indices.shape[0] == 0:
                 return True
             tmp_center = test_point1 - radius*dires[i]
             tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
-            indices = np.array(np.where(tmp_norm < radius - get_screw_radius())).flatten()
+            indices = np.array(np.where(tmp_norm < radius)).flatten()
             if indices.shape[0] == 0:
                 return True
-            
-        # test_point3 = cent + res*(length1)*dire/resol
-        # for i in range(0, 4):
-        #     tmp_center = test_point3 - (-1)**i*radius*dires[i//2]
-        #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
-        #     indices = np.array(np.where(tmp_norm < radius)).flatten()
-        #     if indices.shape[0] == 0:
-        #         return True
-        
-        test_point2 = cent - res*length2*dire/resol
+        test_point2 = cent - j*(length2)*dire/res
         for i in range(0, 4):
             tmp_center = test_point2 + radius*dires[i]
             tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
@@ -588,6 +578,74 @@ def isExploreV2(pcds, info, resol=screw_setting.resolution, radius=8*screw_setti
             indices = np.array(np.where(tmp_norm < radius)).flatten()
             if indices.shape[0] == 0:
                 return True
+    return False
+
+
+def isExploreV1(pcds, info, radius=8*screw_setting.screw_radius):
+    length1 = info[4]
+    all_points = np.empty((0, 3))
+    all_normals = np.empty((0, 3))
+    for pcd in pcds:
+        all_points = np.concatenate([all_points, np.array(pcd.points)], axis=0)
+        all_normals = np.concatenate([all_normals, np.array(pcd.normals)], axis=0)
+    # tree = spatial.KDTree(all_points)
+    dire = np.array(info[0])
+    cent = np.array(info[1])
+    dire1 = np.array([dire[2], 0, -dire[0]])
+    dire1 = dire1/np.linalg.norm(dire1)
+    dire2 = np.cross(dire, dire1)
+    dire3 = dire1 - dire2
+    dire3 = dire3/np.linalg.norm(dire3)
+    dire4 = dire1 + dire2
+    dire4 = dire4/np.linalg.norm(dire4)
+    dires = [dire1, dire2, dire3, dire4]
+    test_point1 = cent + (length1)*dire
+    # ball_centers = []
+    for i in range(0, 4):
+        tmp_center = test_point1 + radius*dires[i]
+        tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+        indices = np.array(np.where(tmp_norm < radius)).flatten()
+        if indices.shape[0] == 0:
+            return True
+        tmp_center = test_point1 - radius*dires[i]
+        tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+        indices = np.array(np.where(tmp_norm < radius)).flatten()
+        if indices.shape[0] == 0:
+            return True
+    return False
+
+
+def isExploreV2(pcds, info, radius=8*screw_setting.screw_radius):
+    length2 = info[5]
+    all_points = np.empty((0, 3))
+    all_normals = np.empty((0, 3))
+    for pcd in pcds:
+        all_points = np.concatenate([all_points, np.array(pcd.points)], axis=0)
+        all_normals = np.concatenate([all_normals, np.array(pcd.normals)], axis=0)
+    # tree = spatial.KDTree(all_points)
+    dire = np.array(info[0])
+    cent = np.array(info[1])
+    dire1 = np.array([dire[2], 0, -dire[0]])
+    dire1 = dire1/np.linalg.norm(dire1)
+    dire2 = np.cross(dire, dire1)
+    dire3 = dire1 - dire2
+    dire3 = dire3/np.linalg.norm(dire3)
+    dire4 = dire1 + dire2
+    dire4 = dire4/np.linalg.norm(dire4)
+    dires = [dire1, dire2, dire3, dire4]
+    
+    test_point2 = cent - (length2)*dire
+    for i in range(0, 4):
+        tmp_center = test_point2 + radius*dires[i]
+        tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+        indices = np.array(np.where(tmp_norm < radius)).flatten()
+        if indices.shape[0] == 0:
+            return True
+        tmp_center = test_point2 - radius*dires[i]
+        tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+        indices = np.array(np.where(tmp_norm < radius)).flatten()
+        if indices.shape[0] == 0:
+            return True
     return False
 
 
@@ -608,7 +666,7 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
     # tree = spatial.KDTree(allPoints)
     # matched_pcds = []
     allCenter = np.mean(allPoints, axis=0)
-    #print("\n\n\033[31mPath program: there are %d screws needed to be processed.\033[0m" % len(path_info))
+    # print("\n\n\033[31mPath program: there are %d screws needed to be processed.\033[0m" % len(path_info))
     for i in range(len(path_info)):
         start = time.time()
         info = path_info[i]
@@ -627,8 +685,8 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
         # tmp = path_points - np.expand_dims(cent, 0).repeat(path_points.shape[0], axis=0)
         tmp = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
         norm = np.linalg.norm(tmp, axis=1)
-        for k in range(len(cone)): #tqdm(range(len(cone)), desc="\033[31mThe %dth screw:\033[0m" % (i + 1),):
-            n_dir = cone[k]
+        for j in range(len(cone)): # tqdm(range(len(cone)), desc="\033[31mThe %dth screw:\033[0m" % (i + 1),):
+            n_dir = cone[j]
             r_dist = np.sqrt(norm**2 - np.abs(np.dot(tmp, n_dir.T))**2)
             indices = np.argwhere(r_dist < eps).flatten()
             tmp_points = restPoints[indices]
@@ -636,7 +694,7 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                 continue
             y_pred = DBSCAN(eps=dist_eps).fit_predict(tmp_points)
             y_uniq = np.unique(np.array(y_pred))
-            center_list = []
+            # center_list = []
             fp_list = []
             cp_list = []
             for y in y_uniq:
@@ -645,46 +703,65 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                 # if ps.shape[0] < 200:
                 #     continue
                 dist = np.dot(ps, n_dir.T)
-                center_list.append(np.mean(ps, axis=0))
+                # center_list.append(np.mean(ps, axis=0))
                 cp_list.append(ps[np.argmin(dist).flatten()[0]])
                 fp_list.append(ps[np.argmax(dist).flatten()[0]])
-            center_list = np.array(center_list)
+            # center_list = np.array(center_list)
             fp_list = np.array(fp_list)
             cp_list = np.array(cp_list)
-            ori_cent = np.expand_dims(cent, 0).repeat(center_list.shape[0], axis=0)
-            dif_cent = center_list - ori_cent
+            ori_cent = np.expand_dims(cent, 0).repeat(fp_list.shape[0], axis=0)
+            # dif_cent = center_list - ori_cent
             dir_fp = fp_list - ori_cent
             dir_cp = cp_list - ori_cent
-            com_cent = np.linalg.norm(dif_cent, axis=1)
+            # com_cent = np.linalg.norm(dif_cent, axis=1)
             com_fp = np.linalg.norm(dir_fp, axis=1)
             com_cp = np.linalg.norm(dir_cp, axis=1)
-            index = np.argmin(com_cent).flatten()[0]
+            # index = np.argmin(com_cent).flatten()[0]
             length1 = 0
             length2 = 0
             tmp_length1 = 0
             tmp_length2 = 0
-            idx1 = None
-            idx2 = None
-            if dif_cent.shape[0] <= 1:
+            idx1 = 0
+            idx2 = 0
+            if com_fp.shape[0] <= 1:
                 continue
-            for k in range(dif_cent.shape[0]):
+            for k in range(com_fp.shape[0]):
                 if com_fp[k] < com_cp[k]:
                     tmp_com = com_cp[k]
                     com_cp[k] = com_fp[k]
                     com_fp[k] = tmp_com
-                # if com_cent[k] < 3*dist_eps:
-                #     continue
-                pn = np.dot(dif_cent[k], n_dir)
+            tmp_com_cp = np.array([com_cp[0]])
+            tmp_com_fp = np.array([com_fp[0]])
+            tmp_dir_cp = np.array([dir_cp[0]])
+            for m in range(1, com_cp.shape[0]):
+                for k in range(tmp_com_cp.shape[0]):
+                    if com_cp[m] <= tmp_com_cp[k]:
+                        tmp_com_cp = np.insert(tmp_com_cp, k, com_cp[m], axis=0)
+                        tmp_com_fp = np.insert(tmp_com_fp, k, com_fp[m], axis=0)
+                        tmp_dir_cp = np.insert(tmp_dir_cp, k, dir_cp[m], axis=0)
+                        break
+                    elif k == tmp_com_cp.shape[0] - 1:
+                        tmp_com_cp = np.concatenate([tmp_com_cp, [com_cp[m]]], axis=0)
+                        tmp_com_fp = np.concatenate([tmp_com_fp, [com_fp[m]]], axis=0)
+                        tmp_dir_cp = np.concatenate([tmp_dir_cp, [dir_cp[m]]], axis=0)
+                        break
+            com_cp = tmp_com_cp
+            com_fp = tmp_com_fp
+            dir_cp = tmp_dir_cp
+            for k in range(com_fp.shape[0]):
+                pn = np.dot(dir_cp[k], n_dir.T)
                 if pn > 0:
                     tmp_length1 = com_cp[k]
                     if length1 < tmp_length1:
-                        length1 = tmp_length1
-                        idx1 = k
+                        if not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, (tmp_length1 + com_fp[idx1])/2, 0]):
+                            length1 = tmp_length1
+                            idx1 = k
                 elif pn < 0:
                     tmp_length2 = com_cp[k]
                     if length2 < tmp_length2:
-                        length2 = tmp_length2
-                        idx2 = k
+                        if not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, (tmp_length2 + com_fp[idx2])/2]):
+                            length2 = tmp_length2
+                            idx2 = k
             if idx1 is None or idx2 is None or length1 >= 1000 or length2 >= 1000:
                 continue
             if np.linalg.norm(cent + n_dir*length1 - allCenter) > np.linalg.norm(cent - n_dir*length2 - allCenter):
@@ -696,7 +773,7 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                 length2 = min(com_fp[idx2], com_cp[idx2] + 4)
             continue_ornot = True
             interference_info = rf_path_info.copy()
-            for k in range(i + 1, len(path_info)):
+            for k in range(len(rf_path_info) + 1, len(path_info)):
                 interference_info.append([path_info[k][0], path_info[k][1], path_info[k][2], path_info[k][3], 0, 0])
             ret, cross_info = isInterference([n_dir, cent, id1, id2, length1, length2], interference_info)
             new_length1 = length1
@@ -708,6 +785,7 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                 if flag_interference1:
                     new_length1 = new_length1*0.9
                     if new_length1 < max(best_length1, 4*dist_eps) or cross_info is None:
+                        new_length1 = 0
                         break
                     com_cp[idx1] = new_length1
                     com_fp[idx1] = new_length1
@@ -717,33 +795,21 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                 else:
                     new_length2 = new_length2*0.9
                     if new_length2 < max(best_length2, 4*dist_eps) or cross_info is None:
+                        new_length1 = 0
                         break
                     com_cp[idx2] = new_length2
                     com_fp[idx2] = new_length2
-                    ret2, cross_info = isInterference([n_dir, cent, id1, id2, dist_eps, new_length2], [cross_info])
+                    ret2, cross_info = isInterference([n_dir, cent, id1, id2, new_length1, new_length2], [cross_info])
             # if length1 >= 70:
             #     length1 = 70
             #     com_cp[idx1] = length1
             #     com_fp[idx1] = length1
-            # flag_explore1 = isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, new_length1, 0])
-            # flag_explore2 = isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, new_length2])
-            # while flag_explore1 or flag_explore2:
-            #     if flag_explore1:
-            #         flag_explore1 = isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, new_length1, 0])
-            #         new_length1 = 0.9*new_length1
-            #         if new_length1 < max(best_length1, 4*dist_eps):
-            #             break
-            #     elif flag_explore2:
-            #         flag_explore2 = isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, new_length1, new_length2])
-            #         new_length2 = 0.9*new_length2
-            #         if new_length2 < max(best_length2, 4*dist_eps):
-            #             break
             length1 = new_length1
             length2 = new_length2     
-            if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 4*dist_eps or length1 < 2*dist_eps or isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
+            if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 4*dist_eps:# or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue
-            if length1 < 30 and length1/length2 < 0.33:
-                continue
+            # if length1 < 30 and length1/length2 < 0.33:
+            #     continue
             if com_cp[idx1] >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
                 continue_ornot = False
             elif com_cp[idx2] > close_length2 and (com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1] + 0.001) > 1.2 and com_cp[idx1]/com_cp[idx2] > 0.33:
@@ -758,7 +824,7 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
         end = time.time()
         if best_length1 == 0 or best_length2 == 0:
             continue
-        print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f"%(i+1, end-start, best_length1, best_length2))
+        print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f"%(len(rf_path_info)+1, end-start, best_length1, best_length2))
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
     # visualization.points_visualization_by_vtk(matched_pcds, screw_setting.color)
     return rf_path_info

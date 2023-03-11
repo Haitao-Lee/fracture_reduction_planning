@@ -42,7 +42,7 @@ def screw_program(args):
     
     stls = data_input.getSTLs(stl_filenames)
     all_pcds = data_input.getPCDfromSTL(stl_filenames)
-    all_pcds = data_prepprocess.remove_outliers(all_pcds)
+    # all_pcds = data_prepprocess.remove_outliers(all_pcds)
     # all_pcds = data_prepprocess.pcds_normals_outside(all_pcds)
     frac_pcds = data_input.getPCDs(pcd_filenames)
     rest_pcds = data_prepprocess.get_rest_pcds(all_pcds, frac_pcds)
