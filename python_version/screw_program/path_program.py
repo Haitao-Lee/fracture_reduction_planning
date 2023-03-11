@@ -177,14 +177,13 @@ def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2, length_r
     best_center1 = np.mean(points1, axis=0)
     best_center2 = np.mean(points2, axis=0)
     # tree = spatial.KDTree(all_points)
-    plane_info, _, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
+    normal = geometry.ransac_planefit(all_points, 3, max_dst=2*screw_setting.ransac_eps)[0][3:6]
     while tmp_position <= max_val - max(6*s_r, 0.2*(max_val - min_val)):
         indices = np.array(np.where((dsp_dsbt > tmp_position - 6*s_r) & (dsp_dsbt < tmp_position + 6*s_r))).flatten()
         if indices.shape[0] <= 60:
             tmp_position = tmp_position + s_r
             continue
         tmp_points = all_points[indices]
-        normal = plane_info[3:6]
         normal1 = np.array([normal[2], 0, -normal[0]])
         normal1 = normal1/np.linalg.norm(normal1)
         normal2 = np.cross(normal1, normal)
@@ -554,7 +553,7 @@ def isExploreV2(pcds, info, resol=screw_setting.resolution, radius=8*screw_setti
     dire4 = dire1 + dire2
     dire4 = dire4/np.linalg.norm(dire4)
     dires = [dire1, dire2, dire3, dire4]
-    for res in range(1, resol):
+    for res in range(1, resol + 1):
         test_point1 = cent + res*(length1)*dire/resol
         # ball_centers = []
         for i in range(0, 4):
@@ -702,33 +701,46 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
             ret, cross_info = isInterference([n_dir, cent, id1, id2, length1, length2], interference_info)
             new_length1 = length1
             new_length2 = length2
-            flag1 = True
+            flag_interference1 = True
             ret1 = ret
             ret2 = ret
             while ret1 or ret2:
-                if flag1:
+                if flag_interference1:
                     new_length1 = new_length1*0.9
-                    if new_length1 < 2*dist_eps or cross_info is None:
+                    if new_length1 < max(best_length1, 4*dist_eps) or cross_info is None:
                         break
                     com_cp[idx1] = new_length1
                     com_fp[idx1] = new_length1
                     ret1, cross_info = isInterference([n_dir, cent, id1, id2, new_length1, dist_eps], [cross_info])
                     if not ret1:
-                        flag1 = False
+                        flag_interference1 = False
                 else:
                     new_length2 = new_length2*0.9
-                    if new_length2 < 2*dist_eps or cross_info is None:
+                    if new_length2 < max(best_length2, 4*dist_eps) or cross_info is None:
                         break
                     com_cp[idx2] = new_length2
                     com_fp[idx2] = new_length2
                     ret2, cross_info = isInterference([n_dir, cent, id1, id2, dist_eps, new_length2], [cross_info])
-            length1 = new_length1
-            length2 = new_length2
             # if length1 >= 70:
             #     length1 = 70
             #     com_cp[idx1] = length1
             #     com_fp[idx1] = length1
-            if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 4*dist_eps or isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]) or length1 < 2*dist_eps:
+            # flag_explore1 = isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, new_length1, 0])
+            # flag_explore2 = isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, new_length2])
+            # while flag_explore1 or flag_explore2:
+            #     if flag_explore1:
+            #         flag_explore1 = isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, new_length1, 0])
+            #         new_length1 = 0.9*new_length1
+            #         if new_length1 < max(best_length1, 4*dist_eps):
+            #             break
+            #     elif flag_explore2:
+            #         flag_explore2 = isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, new_length1, new_length2])
+            #         new_length2 = 0.9*new_length2
+            #         if new_length2 < max(best_length2, 4*dist_eps):
+            #             break
+            length1 = new_length1
+            length2 = new_length2     
+            if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 4*dist_eps or length1 < 2*dist_eps or isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue
             if length1 < 30 and length1/length2 < 0.33:
                 continue
@@ -752,7 +764,7 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
     return rf_path_info
 
 
-def path_program(frac_pcds, all_pcds, rest_pcds):
+def path_program(frac_pcds, all_pcds):
     start = time.time()
     refine_cluster = get_effect_points(frac_pcds)
     path_info = []
@@ -889,7 +901,7 @@ def path_program(frac_pcds, all_pcds, rest_pcds):
                         path_info.insert(j, info2)
                         break
     # path_info = add_screw_length(path_info, all_pcds)
-    path_info = refine_path_info(path_info, rest_pcds)
+    path_info = refine_path_info(path_info, all_pcds)
     end = time.time()
     print("循环运行时间:%.2f秒"%(end-start))
     return path_info
