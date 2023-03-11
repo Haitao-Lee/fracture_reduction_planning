@@ -5,13 +5,13 @@ import numpy as np
 # 不清楚为何直接用相对路径读不出来
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
-data_name = 'data0085'
+data_name = 'data0092'
 
 # the directory that store pcd files
-pcd_dir = cwd + '/data/' + data_name + '/face_pointcloud'
+pcd_dir = cwd + '/cases/' + data_name + '/face_pointcloud'
 
 # the directory that store stl files
-stl_dir = cwd + '/data/' + data_name + '/stl_after_regis'
+stl_dir = cwd + '/cases/' + data_name + '/stl_after_regis'
 
 # stl outputpath
 save_stl = cwd + '/export_screw_stl/' + data_name

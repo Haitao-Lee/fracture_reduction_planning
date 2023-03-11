@@ -343,19 +343,29 @@ def separate_point(points, radius=screw_setting.sp_radius, eps1=screw_setting.sp
 
 
 def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
-    trees = []
-    all_points = []
+    all_points = [0]
+    tmp_all_points = []
     for pcd in pcds:
         points = np.array(pcd.points)
+        tmp_all_points.append(points)
+    all_points[0] = tmp_all_points[0].copy()
+    for i in range(1, len(tmp_all_points)):
+        for j in range(len(all_points)):
+            if tmp_all_points[i].shape[0] <= all_points[j].shape[0]:
+                all_points.insert(j, tmp_all_points[i])
+                break
+            elif j == len(all_points) - 1:
+                all_points.append(tmp_all_points[i])
+                break
+    trees = []
+    for points in all_points:
         tree = spatial.KDTree(points)
         trees.append(tree)
-        all_points.append(points)
     finish_indices = []
     match_clusters = []
     # id1 = None
     # id2 = None
-    for k in range(0, len(all_points)):
-        i = len(all_points) - 1 - k
+    for i in range(0, len(all_points)):
         finish_indices.append(i)
         points1 = np.empty((0, 3))
         points2 = np.empty((0, 3))
@@ -690,18 +700,39 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
             for k in range(i + 1, len(path_info)):
                 interference_info.append([path_info[k][0], path_info[k][1], path_info[k][2], path_info[k][3], 0, 0])
             ret, cross_info = isInterference([n_dir, cent, id1, id2, length1, length2], interference_info)
-            while ret:
-                length1 = length1*0.9
-                if length1 < 2*dist_eps:
-                    break
-                com_cp[idx1] = length1
-                com_fp[idx1] = length1
-                ret, _ = isInterference([n_dir, cent, id1, id2, length1, length2], [cross_info])
+            new_length1 = length1
+            new_length2 = length2
+            flag1 = True
+            ret1 = ret
+            ret2 = ret
+            while ret1 or ret2:
+                if flag1:
+                    new_length1 = new_length1*0.9
+                    if new_length1 < 2*dist_eps or cross_info is None:
+                        break
+                    com_cp[idx1] = new_length1
+                    com_fp[idx1] = new_length1
+                    ret1, cross_info = isInterference([n_dir, cent, id1, id2, new_length1, dist_eps], [cross_info])
+                    if not ret1:
+                        flag1 = False
+                else:
+                    new_length2 = new_length2*0.9
+                    if new_length2 < 2*dist_eps or cross_info is None:
+                        break
+                    com_cp[idx2] = new_length2
+                    com_fp[idx2] = new_length2
+                    ret2, cross_info = isInterference([n_dir, cent, id1, id2, dist_eps, new_length2], [cross_info])
+            length1 = new_length1
+            length2 = new_length2
+            # if length1 >= 70:
+            #     length1 = 70
+            #     com_cp[idx1] = length1
+            #     com_fp[idx1] = length1
             if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 4*dist_eps or isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]) or length1 < 2*dist_eps:
                 continue
             if com_cp[idx1] >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
                 continue_ornot = False
-            elif com_cp[idx2] > close_length2 and (com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1] + 0.001) > 2 and com_cp[idx1]/com_cp[idx2] > 0.25:
+            elif com_cp[idx2] > close_length2 and (com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1] + 0.001) > 2 and com_cp[idx1]/com_cp[idx2] > 0.33:
                 continue_ornot = False
             if not continue_ornot:
                 best_length1 = length1
@@ -712,6 +743,8 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
         # if np.abs(length1) + np.abs(length2) >= 10*dist_eps:
         end = time.time()
         print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f"%(i+1, end-start, best_length1, best_length2))
+        if best_length1 == 0 or best_length2 == 0:
+            continue
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
     # visualization.points_visualization_by_vtk(matched_pcds, screw_setting.color)
     return rf_path_info
@@ -890,7 +923,7 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
         rf_path_info.append([rf_direc, point, id1, id2])
     rf_path_info = add_screw_length(rf_path_info, pcds)
     for i in range(len(path_info)):
-        if pca.explained_variance_ratio_[0] < 0.7:
+        if pca.explained_variance_ratio_[0] < 0.6:
             rf_path_info[i][0] = path_info[i][0]
             rf_path_info[i][4] = path_info[i][4]
             rf_path_info[i][5] = path_info[i][5]
