@@ -491,7 +491,7 @@ def estimate_dist(info1, info2):
     return geometry.segment_3d_dist(f_p1, b_p1, f_p2, b_p2)
 
 
-def isInterference(new_info, path_infos, eps=2*screw_setting.screw_radius):
+def isInterference(new_info, path_infos, eps=2.5*screw_setting.screw_radius):
     for info in path_infos:
         dist = estimate_dist(new_info, info)
         if dist <= eps:
@@ -730,9 +730,11 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
             #     com_fp[idx1] = length1
             if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 4*dist_eps or isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]) or length1 < 2*dist_eps:
                 continue
+            if length1 < 30 and length1/length2 < 0.33:
+                continue
             if com_cp[idx1] >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
                 continue_ornot = False
-            elif com_cp[idx2] > close_length2 and (com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1] + 0.001) > 2 and com_cp[idx1]/com_cp[idx2] > 0.33:
+            elif com_cp[idx2] > close_length2 and (com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1] + 0.001) > 1.2 and com_cp[idx1]/com_cp[idx2] > 0.33:
                 continue_ornot = False
             if not continue_ornot:
                 best_length1 = length1
@@ -742,15 +744,15 @@ def get_optimal_info(path_info, all_pcds, rest_pcds, rest_pcds_for_explore, eps=
                 best_dir = n_dir
         # if np.abs(length1) + np.abs(length2) >= 10*dist_eps:
         end = time.time()
-        print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f"%(i+1, end-start, best_length1, best_length2))
         if best_length1 == 0 or best_length2 == 0:
             continue
+        print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f"%(i+1, end-start, best_length1, best_length2))
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
     # visualization.points_visualization_by_vtk(matched_pcds, screw_setting.color)
     return rf_path_info
 
 
-def path_program(frac_pcds, all_pcds):
+def path_program(frac_pcds, all_pcds, rest_pcds):
     start = time.time()
     refine_cluster = get_effect_points(frac_pcds)
     path_info = []
@@ -770,7 +772,7 @@ def path_program(frac_pcds, all_pcds):
         points = refine_cluster[i]
         points1 = points[0]
         points2 = points[1]
-        # path_dir = get_screw_dir_by_SVM(points1, points2)
+        path_dir = get_screw_dir_by_SVM(points1, points2)
         # path_dir = np.mean(points1, axis=0) - np.mean(points2, axis=0)
         # path_dir = path_dir/np.linalg.norm(path_dir)
         # path_dir = get_screw_dir_by_norm2(points1, points2) # there exist some problems
@@ -826,9 +828,9 @@ def path_program(frac_pcds, all_pcds):
             elif index2 < sizes[j]:
                 id2 = j - 1
                 break
-        path_dir = np.mean(all_points[id1], axis=0) - np.mean(all_points[id2], axis=0)
-        path_dir = path_dir/np.linalg.norm(path_dir)
-        path_info.append([path_dir, path_center, id1, id2])
+        # path_dir = np.mean(all_points[id1], axis=0) - np.mean(all_points[id2], axis=0)
+        # path_dir = path_dir/np.linalg.norm(path_dir)
+        path_info.append([path_dir, path_center, id1, id2, 0, 0])
     # refine the number of implanted screws
     for info in path_info:
         id_record[info[2]] = id_record[info[2]] + 1
@@ -878,16 +880,16 @@ def path_program(frac_pcds, all_pcds):
                         # ps22 = points2[indices22]
                         
                         path_center1, path_center2 = get_2_screw_implant_positions_by_Chebyshev_center(point1, point2, length_rate/4)
-                        info1 = [info[0], path_center1, info[2], info[3]]
-                        info2 = [info[0], path_center2, info[2], info[3]]
+                        info1 = [info[0], path_center1, info[2], info[3], 0, 0]
+                        info2 = [info[0], path_center2, info[2], info[3], 0, 0]
                         id_record[info[2]] = id_record[info[2]] + 1
                         id_record[info[3]] = id_record[info[3]] + 1
                         path_info[j] = info1
                         j = j + 1
                         path_info.insert(j, info2)
                         break
-    path_info = add_screw_length(path_info, all_pcds)
-    path_info = refine_path_info(path_info, all_pcds)
+    # path_info = add_screw_length(path_info, all_pcds)
+    path_info = refine_path_info(path_info, rest_pcds)
     end = time.time()
     print("循环运行时间:%.2f秒"%(end-start))
     return path_info
@@ -896,9 +898,11 @@ def path_program(frac_pcds, all_pcds):
 def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, length_eps=screw_setting.length_eps):
     rf_path_info = []
     all_points = np.empty((0, 3))
+    allPoints = []
     for pcd in pcds:
         points = np.asarray(pcd.points)
         all_points = np.concatenate([all_points, points], axis=0)
+        allPoints.append(points)
     tree = spatial.KDTree(all_points)
     centers = []
     for i in range(len(path_info)):
@@ -920,13 +924,17 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
         # rf_direc = (direc + vec)/2
         rf_direc = vec  #+ path_info[i][0]
         # rf_direc = rf_direc/np.linalg.norm(rf_direc)
-        rf_path_info.append([rf_direc, point, id1, id2])
-    rf_path_info = add_screw_length(rf_path_info, pcds)
+        rf_path_info.append([rf_direc, point, id1, id2, 0, 0])
+    # rf_path_info = add_screw_length(rf_path_info, pcds)
     for i in range(len(path_info)):
-        if pca.explained_variance_ratio_[0] < 0.6:
-            rf_path_info[i][0] = path_info[i][0]
-            rf_path_info[i][4] = path_info[i][4]
-            rf_path_info[i][5] = path_info[i][5]
+        # tmp = pca.explained_variance_ratio_
+        # tmp = 0
+        dire = np.mean(allPoints[path_info[i][2]], axis=0) - np.mean(allPoints[path_info[i][3]], axis=0)
+        dire = dire/np.linalg.norm(dire)
+        if np.abs(np.dot(dire, vec.T)) < 0.8:
+            rf_path_info[i][0] = dire
+            # rf_path_info[i][4] = 0
+            # rf_path_info[i][5] = 0
     # visualization.points_visualization_by_vtk(pcds, centers, radius)
     return rf_path_info
 

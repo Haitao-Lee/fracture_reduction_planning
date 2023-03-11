@@ -5,7 +5,7 @@ import numpy as np
 # 不清楚为何直接用相对路径读不出来
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
-data_name = 'data0092'
+data_name = 'data0092gig'
 
 # the directory that store pcd files
 pcd_dir = cwd + '/cases/' + data_name + '/face_pointcloud'
@@ -83,7 +83,7 @@ cone_angle = np.pi/3
 r_res = 15
 
 # circle resolution in get_cone
-c_res = 18  # 30°
+c_res = 18  # 20°
 
 # length threshold in refine_path_info
 length_eps = 10*screw_radius

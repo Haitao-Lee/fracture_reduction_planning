@@ -59,7 +59,7 @@ def screw_program(args):
     
     # visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
     
-    path_info = path_program.path_program(frac_pcds, all_pcds)
+    path_info = path_program.path_program(frac_pcds, all_pcds, rest_pcds)
     
     # rf_path_info_v1 = path_program.refine_path_info_v1(path_info, all_pcds)
     
