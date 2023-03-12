@@ -89,7 +89,7 @@ c_res = 18  # 20°
 length_eps = 10*screw_radius
 
 # point cloud down sample
-voxel_size = 2
+voxel_size = 1
 
 # resolution in explore
 resolution = 8

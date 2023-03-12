@@ -94,7 +94,7 @@ def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius - 0.5):
         all_points.append(np.array(all_pcd.points))
         trees.append(spatial.KDTree(np.array(all_pcd.points)))
         rest_points.append(0)
-    for i in range(len(frac_points)):#tqdm(range(len(frac_points)), desc="\033[31mGenerating effect point clouds:\033[0m",):
+    for i in range(len(frac_points)): #tqdm(range(len(frac_points)), desc="\033[31mGenerating effect point clouds:\033[0m",):
         frac_ps = frac_points[i]
         # _, frac_ps, _ = geometry.ransac_planefit(frac_ps, ransac_n=3, max_dst=screw_setting.ransac_eps/10)
         index = None
