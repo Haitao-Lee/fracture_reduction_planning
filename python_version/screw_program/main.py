@@ -39,7 +39,6 @@ def screw_program(args):
     stl_filenames = data_input.get_filenames(args.stl_dir, ".stl")
     pcd_filenames = data_input.get_filenames(args.pcd_dir, ".pcd")
     # mtx_filenames = data_input.get_filenames(args.mtx_dir, ".npy")
-    
     stls = data_input.getSTLs(stl_filenames)
     all_pcds = data_input.getPCDfromSTL(stl_filenames)
     # all_pcds = data_prepprocess.remove_outliers(all_pcds)
@@ -48,15 +47,7 @@ def screw_program(args):
     rest_pcds = data_prepprocess.get_rest_pcds(all_pcds, frac_pcds)
     rest_pcds = data_prepprocess.downSample(rest_pcds)
     rest_pcds_for_explore = data_prepprocess.downSample(rest_pcds, voxel_size=2*screw_setting.voxel_size)
-    # rest_pcds_for_explore = data_prepprocess.pcds_normals_outside(rest_pcds)
-    # mtxs = data_input.getNPYs(mtx_filenames)
-    # img = data_input.getNIIasNPY(args.img_dir)
-    # label = data_input.getNIIasNPY(args.label_dir)
-    
-    # img = img*label
-    
-    # print(img.shape)
-    # print(label.shape)
+ 
     
     # visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
     
