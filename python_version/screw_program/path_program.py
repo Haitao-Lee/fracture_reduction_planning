@@ -628,6 +628,7 @@ def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius):
         dire1 = np.array([0, -dire[2], dire[1]])
     dire1 = dire1/np.linalg.norm(dire1)
     dire2 = np.cross(dire, dire1)
+    dire2 = dire2/np.linalg.norm(dire2)
     dire3 = dire1 - dire2
     dire3 = dire3/np.linalg.norm(dire3)
     dire4 = dire1 + dire2
@@ -652,10 +653,10 @@ def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius):
         for index in indices:
             dist = np.dot(diff[index], dires[i].T)
             if not flag1:
-                if dist < 200 and dist > get_screw_radius():
+                if dist < 200 and dist > get_screw_radius()/2:
                     flag1 = True
             elif not flag2:
-                if -dist < 200 and -dist > get_screw_radius():
+                if -dist < 200 and -dist > get_screw_radius()/2:
                     flag2 = True
             if flag1 and flag2:
                 break
@@ -669,7 +670,7 @@ def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius):
 
 
 def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius):
-    length2 = info[4]
+    length2 = info[5]
     all_points = np.empty((0, 3))
     for pcd in pcds:
         all_points = np.concatenate([all_points, np.array(pcd.points)], axis=0)
@@ -678,6 +679,7 @@ def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius):
     dire1 = np.array([dire[2], 0, -dire[0]])
     dire1 = dire1/np.linalg.norm(dire1)
     dire2 = np.cross(dire, dire1)
+    dire2 = dire2/np.linalg.norm(dire2)
     dire3 = dire1 - dire2
     dire3 = dire3/np.linalg.norm(dire3)
     dire4 = dire1 + dire2
@@ -700,9 +702,9 @@ def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius):
         flag2 = False
         for index in indices:
             dist = np.dot(diff[index], dires[i].T)
-            if not flag1 and dist > 0 and dist < 200 and dist > get_screw_radius():
+            if not flag1 and dist > 0 and dist < 200 and dist > get_screw_radius()/2:
                 flag1 = True
-            elif not flag2 and dist < 0 and -dist < 200 and -dist > get_screw_radius():
+            elif not flag2 and dist < 0 and -dist < 200 and -dist > get_screw_radius()/2:
                 flag2 = True
             if flag1 and flag2:
                 break
