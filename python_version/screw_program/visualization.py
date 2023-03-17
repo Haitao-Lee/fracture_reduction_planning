@@ -34,7 +34,7 @@ def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_r
     if centers is not None:
         for center in centers:
             sph_actor = get_sphere_actor(center, radius, (1, 0, 0))
-            sph_actor.GetProperty().SetOpacity(0.4)
+            sph_actor.GetProperty().SetOpacity(0.8)
             renderer.AddActor(sph_actor)
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)

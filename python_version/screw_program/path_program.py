@@ -615,7 +615,7 @@ def isExplore(pcds, info, res=screw_setting.resolution, radius=10*screw_setting.
 #     return False
 
 
-def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius):
+def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius, rate=1.2):
     length1 = info[4]
     all_points = np.empty((0, 3))
     for pcd in pcds:
@@ -638,14 +638,14 @@ def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius):
     diff = all_points - np.expand_dims(test_point1, 0).repeat(all_points.shape[0], axis=0)
     diff_norm = np.linalg.norm(diff, axis=1)
     # ball_centers = []
-    cone_pcd = []
+    # cone_pcd = []
     for i in range(0, len(dires)):
         r_dist = np.sqrt(diff_norm**2 - np.abs(np.dot(diff, dires[i].T))**2)
         indices = np.argwhere(r_dist < radius).flatten()
-        tmp_points = all_points[indices]
-        tmp_pcd = o3d.geometry.PointCloud()
-        tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
-        cone_pcd.append(tmp_pcd)
+        # tmp_points = all_points[indices]
+        # tmp_pcd = o3d.geometry.PointCloud()
+        # tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
+        # cone_pcd.append(tmp_pcd)
         if indices.shape[0] <= 1:
             return True
         flag1 = False
@@ -653,10 +653,10 @@ def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius):
         dists = np.dot(diff[indices], dires[i].T)
         for dist in dists:
             if not flag1:
-                if dist < 200 and dist > get_screw_radius():
+                if dist < 200 and dist >rate*get_screw_radius():
                     flag1 = True
             if not flag2:
-                if -dist < 200 and -dist > get_screw_radius():
+                if dist > -200 and dist < -rate*get_screw_radius():
                     flag2 = True
             if flag1 and flag2:
                 break
@@ -669,7 +669,7 @@ def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius):
     return False
 
 
-def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius):
+def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius, rate=1.2):
     length2 = info[5]
     all_points = np.empty((0, 3))
     for pcd in pcds:
@@ -677,6 +677,8 @@ def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius):
     dire = np.array(info[0])
     cent = np.array(info[1])
     dire1 = np.array([dire[2], 0, -dire[0]])
+    if np.linalg.norm(dire1) == 0:
+        dire1 = np.array([0, -dire[2], dire[1]])
     dire1 = dire1/np.linalg.norm(dire1)
     dire2 = np.cross(dire, dire1)
     dire2 = dire2/np.linalg.norm(dire2)
@@ -703,10 +705,10 @@ def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius):
         dists = np.dot(diff[indices], dires[i].T)
         for dist in dists:
             if not flag1:
-                if dist < 200 and dist > get_screw_radius():
+                if dist < 200 and dist > rate*get_screw_radius():
                     flag1 = True
             if not flag2:
-                if -dist < 200 and -dist > get_screw_radius():
+                if dist > -200 and dist < -rate*get_screw_radius():
                     flag2 = True
             if flag1 and flag2:
                 break
@@ -820,6 +822,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         cent_var = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
         norm = np.linalg.norm(cent_var, axis=1)
         best_cone_pcd = []
+        best_explore_points = []
         for j in range(len(cone)): # tqdm(range(len(cone)), desc="\033[31mThe %dth screw:\033[0m" % (i + 1),):
             n_dir = cone[j]
             r_dist = np.sqrt(norm**2 - np.abs(np.dot(cent_var, n_dir.T))**2)
@@ -827,13 +830,14 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             if indices.shape[0] == 0:
                 continue
             tmp_points = restPoints[indices]
-            y_pred = DBSCAN(eps=dist_eps/2).fit_predict(tmp_points)
+            y_pred = DBSCAN(eps=dist_eps).fit_predict(tmp_points)
             y_uniq = np.unique(np.array(y_pred))
             # center_list = []
             fp_list = []
             cp_list = []
             ps = None
             cone_pcd = []
+            explore_points = []
             for y in y_uniq:
                 idx = np.argwhere(y_pred == y).flatten()
                 ps = np.array(tmp_points[idx])
@@ -891,9 +895,11 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             com_cp = tmp_com_cp
             com_fp = tmp_com_fp
             dir_cp = tmp_dir_cp
+            explore_flag1 = False
+            explore_flag2 = False
             for k in range(com_fp.shape[0]):
                 pn = np.dot(dir_cp[k], n_dir.T)
-                if pn > 0:
+                if pn > 0 and not explore_flag1:
                     tmp_length1 = com_cp[k]
                     # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
                     if idx1 == -1:
@@ -901,24 +907,38 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                         if not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, explore_length1, 0]):
                             length1 = tmp_length1
                             idx1 = k
+                        else:
+                            explore_points.append(cent + n_dir*explore_length1)
+                            explore_flag1 = True
                     else:
                         explore_length1 = (tmp_length1 + com_fp[idx1])/2
+                        explore_points.append(cent + n_dir*explore_length1)
+                        explore_points.append(cent + n_dir*(com_cp[idx1] + com_fp[idx1])/2)
                         if not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, explore_length1, 0]) and not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, (com_cp[idx1] + com_fp[idx1])/2, 0]):
                             length1 = tmp_length1
                             idx1 = k
-                elif pn <= 0:
+                        else:
+                            explore_flag1 = True
+                elif pn <= 0 and not explore_flag2:
                     tmp_length2 = com_cp[k]
                     # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
                     if idx2 == -1:
                         explore_length2 = tmp_length2/2
+                        explore_points.append(cent - n_dir*explore_length2)
                         if not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, explore_length2]):
                             length2 = tmp_length2
                             idx2 = k
+                        else:
+                            explore_flag2 = True
                     else:
                         explore_length2 = (tmp_length2 + com_fp[idx2])/2
+                        explore_points.append(cent - n_dir*explore_length2)
+                        explore_points.append(cent - n_dir*(com_cp[idx2] + com_fp[idx2])/2)
                         if not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, explore_length2]) and not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, (com_cp[idx2] + com_fp[idx2])/2]):
                             length2 = tmp_length2
                             idx2 = k
+                        else:
+                            explore_flag2 = True
             if idx1 == -1 or idx2 == -1 or length1 <= 3*dist_eps or length2 <= 3*dist_eps:
                 # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent, cent+length1*n_dir, cent-length2*n_dir])
                 continue
@@ -962,15 +982,19 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             #     com_cp[idx1] = length1
             #     com_fp[idx1] = length1
             length1 = new_length1
-            length2 = new_length2   
+            length2 = new_length2 
             if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or length1/length2 < 0.33:# or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue
             # if length1 < 30 and length1/length2 < 0.33:
             #     continue
             continue_ornot = True
+            # if min(length1, length2) > min(best_length1, best_length2):
+            #     continue_ornot = False
+            # elif (max(length1, length2) - max(best_length1, best_length2))/(min(best_length1, best_length2) - min(length1, length2) + 0.01) > 2:
+            #     continue_ornot = False
             if length1 >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
                 continue_ornot = False
-            elif com_cp[idx2] > close_length2 and (length1 + length2)*min(length1, length2)/length2 > best_length1 + best_length2:
+            elif com_cp[idx2] > close_length2 and (length2 - best_length2)/(best_length1 - length1 + 0.01) > 1.2:
                 continue_ornot = False
             if not continue_ornot:
                 best_length1 = length1
@@ -979,6 +1003,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                 close_length2 = com_cp[idx2]
                 best_dir = n_dir
                 best_cone_pcd = cone_pcd
+                best_explore_points = explore_points
         # if np.abs(length1) + np.abs(length2) >= 10*dist_eps:
         end = time.time()
         if best_length1 == 0 or best_length2 == 0:
@@ -986,7 +1011,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f" % (len(rf_path_info)+1, end-start, best_length1, best_length2))
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
         matched_pcds.extend(best_cone_pcd)
-        visualization.points_visualization_by_vtk(best_cone_pcd)
+        # visualization.points_visualization_by_vtk(rest_pcds, best_explore_points)
         # tmp_length1 = 0
         # tmp_length2 = 0
         # for k in range(com_fp.shape[0]):
