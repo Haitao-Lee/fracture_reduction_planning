@@ -490,7 +490,7 @@ def estimate_dist(info1, info2):
     return geometry.segment_3d_dist(f_p1, b_p1, f_p2, b_p2)
 
 
-def isInterference(new_info, path_infos, eps=4*screw_setting.screw_radius):
+def isInterference(new_info, path_infos, eps=3*screw_setting.screw_radius):
     for info in path_infos:
         dist = estimate_dist(new_info, info)
         if dist <= eps:
@@ -650,13 +650,13 @@ def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius):
             return True
         flag1 = False
         flag2 = False
-        for index in indices:
-            dist = np.dot(diff[index], dires[i].T)
+        dists = np.dot(diff[indices], dires[i].T)
+        for dist in dists:
             if not flag1:
-                if dist < 200 and dist > get_screw_radius()/2:
+                if dist < 200 and dist > get_screw_radius():
                     flag1 = True
-            elif not flag2:
-                if -dist < 200 and -dist > get_screw_radius()/2:
+            if not flag2:
+                if -dist < 200 and -dist > get_screw_radius():
                     flag2 = True
             if flag1 and flag2:
                 break
@@ -700,12 +700,14 @@ def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius):
             return True
         flag1 = False
         flag2 = False
-        for index in indices:
-            dist = np.dot(diff[index], dires[i].T)
-            if not flag1 and dist > 0 and dist < 200 and dist > get_screw_radius()/2:
-                flag1 = True
-            elif not flag2 and dist < 0 and -dist < 200 and -dist > get_screw_radius()/2:
-                flag2 = True
+        dists = np.dot(diff[indices], dires[i].T)
+        for dist in dists:
+            if not flag1:
+                if dist < 200 and dist > get_screw_radius():
+                    flag1 = True
+            if not flag2:
+                if -dist < 200 and -dist > get_screw_radius():
+                    flag2 = True
             if flag1 and flag2:
                 break
         if not flag1 or not flag2:
@@ -796,7 +798,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         restPoints = np.concatenate([restPoints, points], axis=0)
         rest_points.append(points)
     # tree = spatial.KDTree(allPoints)
-    # matched_pcds = []
+    matched_pcds = []
     allCenter = np.mean(restPoints, axis=0)
     # print("\n\n\033[31mPath program: there are %d screws needed to be processed.\033[0m" % len(path_info))
     for i in range(len(path_info)):
@@ -815,23 +817,23 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         close_length2 = 0
         # tmp = allPoints - np.expand_dims(cent, 0).repeat(allPoints.shape[0], axis=0)
         # tmp = path_points - np.expand_dims(cent, 0).repeat(path_points.shape[0], axis=0)
-        tmp = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
-        norm = np.linalg.norm(tmp, axis=1)
-        # best_cone_pcd = []
+        cent_var = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
+        norm = np.linalg.norm(cent_var, axis=1)
+        best_cone_pcd = []
         for j in range(len(cone)): # tqdm(range(len(cone)), desc="\033[31mThe %dth screw:\033[0m" % (i + 1),):
             n_dir = cone[j]
-            r_dist = np.sqrt(norm**2 - np.abs(np.dot(tmp, n_dir.T))**2)
+            r_dist = np.sqrt(norm**2 - np.abs(np.dot(cent_var, n_dir.T))**2)
             indices = np.argwhere(r_dist < eps).flatten()
             if indices.shape[0] == 0:
                 continue
             tmp_points = restPoints[indices]
-            y_pred = DBSCAN(eps=dist_eps).fit_predict(tmp_points)
+            y_pred = DBSCAN(eps=dist_eps/2).fit_predict(tmp_points)
             y_uniq = np.unique(np.array(y_pred))
             # center_list = []
             fp_list = []
             cp_list = []
             ps = None
-            # cone_pcd = []
+            cone_pcd = []
             for y in y_uniq:
                 idx = np.argwhere(y_pred == y).flatten()
                 ps = np.array(tmp_points[idx])
@@ -841,9 +843,9 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                 # center_list.append(np.mean(ps, axis=0))
                 cp_list.append(ps[np.argmin(dist).flatten()[0]])
                 fp_list.append(ps[np.argmax(dist).flatten()[0]])
-                # tmp_pcd = o3d.geometry.PointCloud()
-                # tmp_pcd.points = o3d.utility.Vector3dVector(ps)
-                # cone_pcd.append(tmp_pcd)
+                tmp_pcd = o3d.geometry.PointCloud()
+                tmp_pcd.points = o3d.utility.Vector3dVector(ps)
+                cone_pcd.append(tmp_pcd)
             # center_list = np.array(center_list)
             fp_list = np.array(fp_list)
             cp_list = np.array(cp_list)
@@ -868,6 +870,9 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                     tmp_com = com_cp[k].copy()
                     com_cp[k] = com_fp[k]
                     com_fp[k] = tmp_com
+                    tmp_diff = dir_cp[k].copy()
+                    dir_cp[k] = dir_fp[k]
+                    dir_fp[k] = tmp_diff
             tmp_com_cp = np.array([com_cp[0]])
             tmp_com_fp = np.array([com_fp[0]])
             tmp_dir_cp = np.array([dir_cp[0]])
@@ -890,41 +895,32 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                 pn = np.dot(dir_cp[k], n_dir.T)
                 if pn > 0:
                     tmp_length1 = com_cp[k]
-                    if length1 < tmp_length1:
-                        # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
-                        explore_length1 = 0
-                        if idx1 == -1:
-                            explore_length1 = tmp_length1/2
-                            if not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, explore_length1, 0]):
-                                length1 = tmp_length1
-                                idx1 = k
-                        else:
-                            explore_length1 = (tmp_length1 + com_fp[idx1])/2
-                            if not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, explore_length1, 0]) and not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, (com_cp[idx1] + com_fp[idx1])/2, 0]):
-                                length1 = tmp_length1
-                                idx1 = k
-                        # else:
-                        #     visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
-                        #     idx1 = idx1
+                    # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
+                    if idx1 == -1:
+                        explore_length1 = tmp_length1/2
+                        if not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, explore_length1, 0]):
+                            length1 = tmp_length1
+                            idx1 = k
+                    else:
+                        explore_length1 = (tmp_length1 + com_fp[idx1])/2
+                        if not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, explore_length1, 0]) and not isExploreV1(rest_pcds_for_explore, [n_dir, cent, id1, id2, (com_cp[idx1] + com_fp[idx1])/2, 0]):
+                            length1 = tmp_length1
+                            idx1 = k
                 elif pn <= 0:
                     tmp_length2 = com_cp[k]
-                    if length2 < tmp_length2:
-                        # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
-                        explore_length2 = 0
-                        if idx2 == -1:
-                            explore_length2 = tmp_length2/2
-                            if not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, explore_length2]):
-                                length2 = tmp_length2
-                                idx2 = k
-                        else:
-                            explore_length2 = (tmp_length2 + com_fp[idx2])/2
-                            if not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, explore_length2]) and not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, (com_cp[idx2] + com_fp[idx2])/2]):
-                                length2 = tmp_length2
-                                idx2 = k
-                        # else:
-                        #     visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
-                        #     idx2 = idx2
-            if (idx1 == -1 or idx2 == -1) or length1 <= 4*dist_eps or length2 <= 4*dist_eps:
+                    # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
+                    if idx2 == -1:
+                        explore_length2 = tmp_length2/2
+                        if not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, explore_length2]):
+                            length2 = tmp_length2
+                            idx2 = k
+                    else:
+                        explore_length2 = (tmp_length2 + com_fp[idx2])/2
+                        if not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, explore_length2]) and not isExploreV2(rest_pcds_for_explore, [n_dir, cent, id1, id2, 0, (com_cp[idx2] + com_fp[idx2])/2]):
+                            length2 = tmp_length2
+                            idx2 = k
+            if idx1 == -1 or idx2 == -1 or length1 <= 3*dist_eps or length2 <= 3*dist_eps:
+                # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent, cent+length1*n_dir, cent-length2*n_dir])
                 continue
             if np.linalg.norm(cent + n_dir*length1 - allCenter) > np.linalg.norm(cent - n_dir*length2 - allCenter):
                 n_dir = - n_dir
@@ -933,10 +929,9 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                 idx2 = tmp_idx
                 length1 = com_cp[idx1]
                 length2 = min(com_fp[idx2], com_cp[idx2] + 4)
-            continue_ornot = True
             interference_info = rf_path_info.copy()
             for k in range(len(rf_path_info) + 1, len(path_info)):
-                interference_info.append([path_info[k][0], path_info[k][1], path_info[k][2], path_info[k][3], 0, 0])
+                interference_info.append([path_info[k][0], path_info[k][1], path_info[k][2], path_info[k][3], dist_eps, dist_eps])
             ret, cross_info = isInterference([n_dir, cent, id1, id2, length1, length2], interference_info)
             new_length1 = length1
             new_length2 = length2
@@ -946,35 +941,36 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             while ret1 or ret2:
                 if flag_interference1:
                     new_length1 = new_length1*0.9
-                    if new_length1 < max(best_length1, 4*dist_eps) or cross_info is None:
+                    if new_length1 < max(best_length1, 3*dist_eps):
                         new_length1 = 0
                         break
                     com_cp[idx1] = new_length1
                     com_fp[idx1] = new_length1
-                    ret1, cross_info = isInterference([n_dir, cent, id1, id2, new_length1, dist_eps], [cross_info])
+                    ret1, _ = isInterference([n_dir, cent, id1, id2, new_length1, 3*dist_eps], [cross_info])
                     if not ret1:
                         flag_interference1 = False
                 else:
                     new_length2 = new_length2*0.9
-                    if new_length2 < max(best_length2, 4*dist_eps) or cross_info is None:
-                        new_length1 = 0
+                    if new_length2 < max(best_length2, 3*dist_eps):
+                        new_length2 = 0
                         break
                     com_cp[idx2] = new_length2
                     com_fp[idx2] = new_length2
-                    ret2, cross_info = isInterference([n_dir, cent, id1, id2, new_length1, new_length2], [cross_info])
+                    ret2, _ = isInterference([n_dir, cent, id1, id2, new_length1, new_length2], [cross_info])
             # if length1 >= 70:
             #     length1 = 70
             #     com_cp[idx1] = length1
             #     com_fp[idx1] = length1
             length1 = new_length1
-            length2 = new_length2     
-            if np.abs(length1) + np.abs(length2) < 10*dist_eps or min(com_cp[idx1], com_cp[idx2]) < 4*dist_eps:# or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
+            length2 = new_length2   
+            if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or length1/length2 < 0.33:# or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue
             # if length1 < 30 and length1/length2 < 0.33:
             #     continue
-            if com_cp[idx1] >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
+            continue_ornot = True
+            if length1 >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
                 continue_ornot = False
-            elif com_cp[idx2] > close_length2 and (com_cp[idx2] - close_length2)/(best_length1 - com_cp[idx1] + 0.001) > 1.2 and com_cp[idx1]/com_cp[idx2] > 0.33:
+            elif com_cp[idx2] > close_length2 and (length1 + length2)*min(length1, length2)/length2 > best_length1 + best_length2:
                 continue_ornot = False
             if not continue_ornot:
                 best_length1 = length1
@@ -982,14 +978,15 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                 # close_length1 = com_cp[idx1]
                 close_length2 = com_cp[idx2]
                 best_dir = n_dir
-                # best_cone_pcd = cone_pcd
+                best_cone_pcd = cone_pcd
         # if np.abs(length1) + np.abs(length2) >= 10*dist_eps:
         end = time.time()
         if best_length1 == 0 or best_length2 == 0:
             continue
         print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f" % (len(rf_path_info)+1, end-start, best_length1, best_length2))
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
-        # matched_pcds.extend(best_cone_pcd)
+        matched_pcds.extend(best_cone_pcd)
+        visualization.points_visualization_by_vtk(best_cone_pcd)
         # tmp_length1 = 0
         # tmp_length2 = 0
         # for k in range(com_fp.shape[0]):
@@ -1000,7 +997,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         #     elif pn < 0:
         #         isExplore_vis(rest_pcds, [best_dir, cent, id1, id2, (tmp_length1 + com_cp[k])/2, (tmp_length2 + com_cp[k])/2])
         #         tmp_length2 = com_cp[k]
-        
+    # visualization.points_visualization_by_vtk(matched_pcds)
     # matched_pcds.extend(rest_pcds)
     # for i in range(len(rf_path_info)):
     #     isExplore_vis(matched_pcds, rf_path_info[i])
@@ -1008,7 +1005,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
     return rf_path_info
 
 
-def path_program(frac_pcds, all_pcds):
+def path_program(frac_pcds, all_pcds, rest_pcds):
     start = time.time()
     refine_cluster = get_effect_points(frac_pcds)
     path_info = []
@@ -1145,7 +1142,7 @@ def path_program(frac_pcds, all_pcds):
                         path_info.insert(j, info2)
                         break
     # path_info = add_screw_length(path_info, all_pcds)
-    path_info = refine_path_info(path_info, all_pcds)
+    path_info = refine_path_info(path_info, rest_pcds)
     end = time.time()
     print("循环运行时间:%.2f秒"%(end-start))
     return path_info
