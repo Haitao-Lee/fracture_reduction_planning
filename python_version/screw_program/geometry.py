@@ -251,7 +251,7 @@ def line_3d_relationship(p1, p2, q1, q2):
 
 def segment_3d_dist(p1, p2, q1, q2):
     proj_dist, cross_p, cross_q = line_3d_relationship(p1, p2, q1, q2)
-    if np.linalg.norm(p1 - p2)*np.linalg.norm(q1 - q2) == 0:
+    if np.linalg.norm(p1 - p2) == 0 or np.linalg.norm(q1 - q2) == 0:
         return proj_dist
     p_inside = False
     if (cross_p[0] - p2[0])*(cross_p[0] - p1[0]) <= 0:
@@ -267,10 +267,16 @@ def segment_3d_dist(p1, p2, q1, q2):
         return min(min(l11, l12), min(l21, l22))
     elif p_inside and not q_inside:
         lp = np.linalg.norm(p1 - p2)
+        a = l11**2 - ((lp**2 + l11**2 - l21**2)/lp/2)**2
+        b = l12**2 - ((lp**2 + l12**2 - l22**2)/lp/2)**2
+        c = np.dot(cross_p - cross_q, (p1 - p2).T)
+        d = np.dot(cross_p - cross_q, (q1 - q2).T)
+        if a < 0 or b < 0:
+            return 0
         return np.abs(min(np.sqrt(l11**2 - ((lp**2 + l11**2 - l21**2)/lp/2)**2),
                           np.sqrt(l12**2 - ((lp**2 + l12**2 - l22**2)/lp/2)**2)))
     elif q_inside and not p_inside:
         lq = np.linalg.norm(q1 - q2)
-        return np.abs(min(np.sqrt(l11**2 - ((lq**2 + l11**2 - l12**2)/lq/2)**2),
-                          np.sqrt(l21**2 - ((lq**2 + l21**2 - l22**2)/lq/2)**2)))
+        return np.abs(min(np.sqrt(l12**2 - ((lq**2 + l12**2 - l11**2)/lq/2)**2),
+                          np.sqrt(l22**2 - ((lq**2 + l22**2 - l21**2)/lq/2)**2)))
     return proj_dist

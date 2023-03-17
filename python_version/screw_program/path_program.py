@@ -653,7 +653,7 @@ def isExploreV1(pcds, info, radius=2*screw_setting.screw_radius, rate=1.2):
         dists = np.dot(diff[indices], dires[i].T)
         for dist in dists:
             if not flag1:
-                if dist < 200 and dist >rate*get_screw_radius():
+                if dist < 200 and dist > rate*get_screw_radius():
                     flag1 = True
             if not flag2:
                 if dist > -200 and dist < -rate*get_screw_radius():
@@ -830,7 +830,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             if indices.shape[0] == 0:
                 continue
             tmp_points = restPoints[indices]
-            y_pred = DBSCAN(eps=dist_eps).fit_predict(tmp_points)
+            y_pred = DBSCAN(eps=dist_eps/2).fit_predict(tmp_points)
             y_uniq = np.unique(np.array(y_pred))
             # center_list = []
             fp_list = []
@@ -952,12 +952,14 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             interference_info = rf_path_info.copy()
             for k in range(len(rf_path_info) + 1, len(path_info)):
                 interference_info.append([path_info[k][0], path_info[k][1], path_info[k][2], path_info[k][3], dist_eps, dist_eps])
-            ret, cross_info = isInterference([n_dir, cent, id1, id2, length1, length2], interference_info)
+            ret, _ = isInterference([n_dir, cent, id1, id2, length1, length2], interference_info)
             new_length1 = length1
             new_length2 = length2
             flag_interference1 = True
             ret1 = ret
             ret2 = ret
+            # cross_info1 = cross_info
+            # cross_info2 = cross_info
             while ret1 or ret2:
                 if flag_interference1:
                     new_length1 = new_length1*0.9
@@ -966,7 +968,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                         break
                     com_cp[idx1] = new_length1
                     com_fp[idx1] = new_length1
-                    ret1, _ = isInterference([n_dir, cent, id1, id2, new_length1, 3*dist_eps], [cross_info])
+                    ret1, _ = isInterference([n_dir, cent, id1, id2, new_length1, 3*dist_eps], interference_info)
                     if not ret1:
                         flag_interference1 = False
                 else:
@@ -976,14 +978,14 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                         break
                     com_cp[idx2] = new_length2
                     com_fp[idx2] = new_length2
-                    ret2, _ = isInterference([n_dir, cent, id1, id2, new_length1, new_length2], [cross_info])
+                    ret2, _ = isInterference([n_dir, cent, id1, id2, new_length1, new_length2], interference_info)
             # if length1 >= 70:
             #     length1 = 70
             #     com_cp[idx1] = length1
             #     com_fp[idx1] = length1
             length1 = new_length1
             length2 = new_length2 
-            if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or length1/length2 < 0.33:# or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
+            if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or (min(length1, length2)/max(length1, length2) < 0.33 and min(length1, length2) < 30): # or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue
             # if length1 < 30 and length1/length2 < 0.33:
             #     continue
@@ -992,9 +994,11 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             #     continue_ornot = False
             # elif (max(length1, length2) - max(best_length1, best_length2))/(min(best_length1, best_length2) - min(length1, length2) + 0.01) > 2:
             #     continue_ornot = False
-            if length1 >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
-                continue_ornot = False
-            elif com_cp[idx2] > close_length2 and (length2 - best_length2)/(best_length1 - length1 + 0.01) > 1.2:
+            # if length1 >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
+            #     continue_ornot = False
+            # elif com_cp[idx2] > close_length2 and (length2 - best_length2)/(best_length1 - length1 + 0.01) > 1.2:
+            #     continue_ornot = False
+            if com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
                 continue_ornot = False
             if not continue_ornot:
                 best_length1 = length1
@@ -1003,7 +1007,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                 close_length2 = com_cp[idx2]
                 best_dir = n_dir
                 best_cone_pcd = cone_pcd
-                best_explore_points = explore_points
+                # best_explore_points = explore_points
         # if np.abs(length1) + np.abs(length2) >= 10*dist_eps:
         end = time.time()
         if best_length1 == 0 or best_length2 == 0:
@@ -1012,6 +1016,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
         matched_pcds.extend(best_cone_pcd)
         # visualization.points_visualization_by_vtk(rest_pcds, best_explore_points)
+        # visualization.points_visualization_by_vtk(best_cone_pcd, best_explore_points)
         # tmp_length1 = 0
         # tmp_length2 = 0
         # for k in range(com_fp.shape[0]):
@@ -1157,7 +1162,7 @@ def path_program(frac_pcds, all_pcds, rest_pcds):
                         # ps21 = points2[indices12]
                         # ps22 = points2[indices22]
                         
-                        path_center1, path_center2 = get_2_screw_implant_positions_by_Chebyshev_center(point1, point2, length_rate/4)
+                        path_center1, path_center2 = get_2_screw_implant_positions_by_Chebyshev_center(point1, point2, length_rate/6)
                         info1 = [info[0], path_center1, info[2], info[3], 0, 0]
                         info2 = [info[0], path_center2, info[2], info[3], 0, 0]
                         id_record[info[2]] = id_record[info[2]] + 1
