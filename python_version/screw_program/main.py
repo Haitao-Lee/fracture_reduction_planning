@@ -5,8 +5,8 @@ import numpy as np
 import data_input
 import visualization
 import screw_setting
-import path_program
-import data_prepprocess
+import core
+import data_preprocess
 
 
 def initialize(args):
@@ -44,21 +44,21 @@ def screw_program(args):
     # all_pcds = data_prepprocess.remove_outliers(all_pcds)
     # all_pcds = data_prepprocess.pcds_normals_outside(all_pcds)
     frac_pcds = data_input.getPCDs(pcd_filenames)
-    rest_pcds = data_prepprocess.get_rest_pcds(all_pcds, frac_pcds)
-    rest_pcds = data_prepprocess.downSample(rest_pcds)
-    rest_pcds_for_explore = data_prepprocess.downSample(rest_pcds, voxel_size=2*screw_setting.voxel_size)
+    rest_pcds = data_preprocess.get_rest_pcds(all_pcds, frac_pcds)
+    rest_pcds = data_preprocess.downSample(rest_pcds)
+    rest_pcds_for_explore = data_preprocess.downSample(rest_pcds, voxel_size=2*screw_setting.voxel_size)
 
     
     # visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
     
-    path_info = path_program.path_program(frac_pcds, all_pcds, rest_pcds)
+    path_info = core.path_program(frac_pcds, all_pcds, rest_pcds)
     
     # rf_path_info_v1 = path_program.refine_path_info_v1(path_info, all_pcds)
     
     # rf_path_info_v2 = path_program.refine_path_info_v2(path_info, all_pcds)
     
     # rf_path_info_v3 = path_program.refine_path_info_v3(path_info, all_pcds)
-    rf_path_info_v4 = path_program.refine_path_info_v4(path_info, rest_pcds, rest_pcds_for_explore)
+    rf_path_info_v4 = core.refine_path_info_v4(path_info, rest_pcds, rest_pcds_for_explore)
     # visualization.compare_screw_program2(stls, path_info, rf_path_info_v4, args.color)
     # visualization.stl_pcd_visualization_with_path_by_vtk(stls, frac_pcds, rf_path_info_v4, args.color)
     visualization.best_result_visualization(stls, rf_path_info_v4, args.color)

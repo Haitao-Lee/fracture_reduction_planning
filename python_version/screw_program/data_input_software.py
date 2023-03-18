@@ -9,7 +9,6 @@ import nibabel as nib
 def get_filenames(path, filetype):  # 输入路径、文件类型例如'.csv'
     names = []
     for _, _, files in os.walk(path):
-        # print(files)
         for i in files:
             if os.path.splitext(i)[1] == filetype:
                 names.append(path + '/' + i)
@@ -19,9 +18,7 @@ def get_filenames(path, filetype):  # 输入路径、文件类型例如'.csv'
 # obtain the lists of STL files in the same folder
 def getSTLs(fileNames):
     STLs = []
-    # print("--reading files:")
     for fileName in fileNames:
-        # print(fileName)
         stl_reader = vtk.vtkSTLReader()
         stl_reader.SetFileName(fileName)
         stl_reader.Update()
@@ -34,10 +31,6 @@ def getPCDs(fileNames):
     PCDs = []
     for fileName in fileNames:
         PCD = o3d.io.read_point_cloud(fileName)
-        # mesh_ply.compute_vertex_normals()
-        # PCD = o3d.geometry.PointCloud()
-        # PCD.points = mesh_ply.vertices
-        # PCD.normals = mesh_ply.vertex_normals
         PCDs.append(PCD)
     return PCDs
 
@@ -61,7 +54,6 @@ def getPCDfromSTL(fileNames):
     PCDs = []
     for fileName in fileNames:
         mesh_ply = o3d.io.read_triangle_mesh(fileName)
-        # mesh_ply.compute_vertex_normals()
         PCD = o3d.geometry.PointCloud()
         PCD.points = mesh_ply.vertices
         PCD.normals = mesh_ply.vertex_normals
