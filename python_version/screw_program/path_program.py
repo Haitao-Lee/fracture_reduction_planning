@@ -988,7 +988,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             #     com_fp[idx1] = length1
             length1 = new_length1
             length2 = new_length2 
-            if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or (min(length1, length2)/max(length1, length2) < 0.33 and min(length1, length2) < 30): # or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
+            if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or (min(length1, length2)/max(length1, length2) < 0.33 and min(length1, length2) < 20): # or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue
             # if length1 < 30 and length1/length2 < 0.33:
             #     continue
