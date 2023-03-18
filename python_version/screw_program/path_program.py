@@ -490,10 +490,12 @@ def estimate_dist(info1, info2):
     return geometry.segment_3d_dist(f_p1, b_p1, f_p2, b_p2)
 
 
-def isInterference(new_info, path_infos, eps=3*screw_setting.screw_radius):
+def isInterference(new_info, path_infos, eps=2.5*screw_setting.screw_radius):
     for info in path_infos:
         dist = estimate_dist(new_info, info)
         if dist <= eps:
+            # if np.abs(np.dot(info[0], new_info[0])) <= 0.1:
+            #     visualization.screws_vis([new_info, info])
             return True, info
     return False, None
 
@@ -822,7 +824,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         cent_var = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
         norm = np.linalg.norm(cent_var, axis=1)
         best_cone_pcd = []
-        best_explore_points = []
+        # best_explore_points = []
         for j in range(len(cone)): # tqdm(range(len(cone)), desc="\033[31mThe %dth screw:\033[0m" % (i + 1),):
             n_dir = cone[j]
             r_dist = np.sqrt(norm**2 - np.abs(np.dot(cent_var, n_dir.T))**2)
@@ -951,15 +953,16 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                 length2 = min(com_fp[idx2], com_cp[idx2] + 4)
             interference_info = rf_path_info.copy()
             for k in range(len(rf_path_info) + 1, len(path_info)):
-                interference_info.append([path_info[k][0], path_info[k][1], path_info[k][2], path_info[k][3], dist_eps, dist_eps])
+                if k != i:
+                    interference_info.append([path_info[k][0], path_info[k][1], path_info[k][2], path_info[k][3], dist_eps, dist_eps])
             ret, _ = isInterference([n_dir, cent, id1, id2, length1, length2], interference_info)
             new_length1 = length1
             new_length2 = length2
             flag_interference1 = True
             ret1 = ret
             ret2 = ret
-            # cross_info1 = cross_info
-            # cross_info2 = cross_info
+            if ret and isInterference([n_dir, cent, id1, id2, 3*dist_eps, 3*dist_eps], interference_info)[0]:
+                continue
             while ret1 or ret2:
                 if flag_interference1:
                     new_length1 = new_length1*0.9

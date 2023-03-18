@@ -208,7 +208,9 @@ def line_3d_relationship(p1, p2, q1, q2):
         else:
             v1 = p1 - q1
             normal = np.cross(v1, v2)
+            normal = normal/np.linalg.norm(normal)
             cross_v2 = np.cross(v2, normal)
+            cross_v2 = cross_v2/np.linalg.norm(cross_v2)
             t = np.dot(cross_v2, v1.T)
             cross_q = p1 - cross_v2*t
             return np.abs(t), p1, cross_q
@@ -220,32 +222,40 @@ def line_3d_relationship(p1, p2, q1, q2):
         else:
             v2 = q1 - p1
             normal = np.cross(v2, v1)
+            normal = normal/np.linalg.norm(normal)
             cross_v1 = np.cross(v1, normal)
+            cross_v1 = cross_v1/np.linalg.norm(cross_v1)
             t = np.dot(cross_v1, v2.T)
             cross_p = q1 - cross_v1*t
             return np.abs(t), cross_p, q1
     v1 = v1/np.linalg.norm(v1)
     v2 = v2/np.linalg.norm(v2)
     normal = np.cross(v1, v2)
+    normal = normal/np.linalg.norm(normal)
     # test = np.abs(np.dot(normal, p1 - q1))
     cross_v1 = np.cross(v2, normal)
+    cross_v1 = cross_v1/np.linalg.norm(cross_v1)
     cross_v2 = np.cross(v1, normal)
+    cross_v2 = cross_v2/np.linalg.norm(cross_v2)
     cross_p = None
     cross_q = None
     t1 = None
     t2 = None
-    if np.dot(v1, cross_v1.T) != 0:
+    # b = np.dot(v1, cross_v1.T)
+    # c = np.dot(v2, cross_v2.T)
+    if np.abs(np.dot(v1, cross_v1.T)) >= 0.01:
         t1 = np.dot(q1 - p1, cross_v1.T)/np.dot(v1, cross_v1.T)
-        cross_p = p1 + t1*v1
     else:
         t1 = np.dot(q1 - p1, v1.T)/np.dot(v1, v1.T)
-    if np.dot(v2, cross_v2.T) != 0:
+        t2 = 0
+    if np.abs(np.dot(v2, cross_v2.T)) >= 0.01:
         t2 = np.dot(p1 - q1, cross_v2.T)/np.dot(v2, cross_v2.T)
-    else:
-        t2 = np.dot(p1 - q1, v2.T)/np.dot(v2, v2.T)
     cross_p = p1 + t1*v1
     cross_q = q1 + t2*v2
     proj_dist = np.linalg.norm(cross_q - cross_p)
+    # a = np.dot(cross_q - cross_p, (p1 - p2).T)/(np.linalg.norm(cross_q - cross_p)+0.0001)/(np.linalg.norm(p1 - p2)+0.0001)
+    # if np.abs(a) > 0.01:
+    #     return a
     return proj_dist, cross_p, cross_q
 
 
@@ -267,16 +277,16 @@ def segment_3d_dist(p1, p2, q1, q2):
         return min(min(l11, l12), min(l21, l22))
     elif p_inside and not q_inside:
         lp = np.linalg.norm(p1 - p2)
-        a = l11**2 - ((lp**2 + l11**2 - l21**2)/lp/2)**2
-        b = l12**2 - ((lp**2 + l12**2 - l22**2)/lp/2)**2
-        c = np.dot(cross_p - cross_q, (p1 - p2).T)
-        d = np.dot(cross_p - cross_q, (q1 - q2).T)
-        if a < 0 or b < 0:
-            return 0
-        return np.abs(min(np.sqrt(l11**2 - ((lp**2 + l11**2 - l21**2)/lp/2)**2),
-                          np.sqrt(l12**2 - ((lp**2 + l12**2 - l22**2)/lp/2)**2)))
+        # a = l11**2 - ((lp**2 + l11**2 - l21**2)/lp/2)**2
+        # b = l12**2 - ((lp**2 + l12**2 - l22**2)/lp/2)**2
+        # c = np.dot(cross_p - cross_q, (p1 - p2).T)
+        # d = np.dot(cross_p - cross_q, (q1 - q2).T)
+        # if a < 0 or b < 0:
+        #     return 0
+        return np.abs(min(np.sqrt(np.abs(l11**2 - ((lp**2 + l11**2 - l21**2)/lp/2)**2)),
+                          np.sqrt(np.abs(l12**2 - ((lp**2 + l12**2 - l22**2)/lp/2)**2))))
     elif q_inside and not p_inside:
         lq = np.linalg.norm(q1 - q2)
-        return np.abs(min(np.sqrt(l12**2 - ((lq**2 + l12**2 - l11**2)/lq/2)**2),
-                          np.sqrt(l22**2 - ((lq**2 + l22**2 - l21**2)/lq/2)**2)))
+        return np.abs(min(np.sqrt(np.abs(l12**2 - ((lq**2 + l12**2 - l11**2)/lq/2)**2)),
+                          np.sqrt(np.abs(l22**2 - ((lq**2 + l22**2 - l21**2)/lq/2)**2))))
     return proj_dist

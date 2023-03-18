@@ -643,3 +643,20 @@ def best_result_visualization(stls, path_info, color=screw_setting.color):
     render_window.Render()
     rw_interactor.Initialize()
     rw_interactor.Start()
+    
+    
+def screws_vis(infos):
+    renderer = vtk.vtkRenderer()
+    renderer.SetBackground(1, 1, 1)
+    for info in infos:
+        renderer.AddActor(get_screw_actor(info[1], info[0], info[4], info[5])[0])
+        # renderer.AddActor(get_screw_line_actor(info[1], info[0]))
+    render_window = vtk.vtkRenderWindow()
+    render_window.AddRenderer(renderer)
+    rw_style = vtk.vtkInteractorStyleTrackballCamera()
+    rw_interactor = vtk.vtkRenderWindowInteractor()
+    rw_interactor.SetRenderWindow(render_window)
+    rw_interactor.SetInteractorStyle(rw_style)
+    render_window.Render()
+    rw_interactor.Initialize()
+    rw_interactor.Start()
