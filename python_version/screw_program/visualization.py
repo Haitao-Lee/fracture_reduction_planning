@@ -6,8 +6,47 @@ import math
 import os
 
 
+# def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_radius, pcd_radius=screw_setting.pcd_radius, color=screw_setting.color):
+#     renderer = vtk.vtkRenderer()
+#     for i in range(0, len(PCDs)):
+#         xyz = np.asarray(PCDs[i].points)
+#         pcd_polydata = vtk.vtkAppendPolyData()
+#         for j in range(0, xyz.shape[0]):
+#             sphere = vtk.vtkSphereSource()
+#             sphere.SetCenter(xyz[j])
+#             sphere.SetRadius(pcd_radius)
+#             sphere.Update()
+#             pcd_polydata.AddInputConnection(sphere.GetOutputPort())
+
+#         ply_mapper = vtk.vtkPolyDataMapper()
+#         ply_mapper.SetInputData(pcd_polydata.GetOutput())
+#         ply_mapper.Update()
+
+#         ply_actor = vtk.vtkActor()
+#         ply_actor.SetMapper(ply_mapper)
+#         ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
+#                                          color[(3 * i + 1) % len(color)],
+#                                          color[(3 * i + 2) % len(color)])
+#         renderer.AddActor(ply_actor)
+#     if centers is not None:
+#         for center in centers:
+#             sph_actor = get_sphere_actor(center, radius, (1, 0, 0))
+#             sph_actor.GetProperty().SetOpacity(0.8)
+#             renderer.AddActor(sph_actor)
+#     render_window = vtk.vtkRenderWindow()
+#     render_window.AddRenderer(renderer)
+#     rw_style = vtk.vtkInteractorStyleTrackballCamera()
+#     rw_interactor = vtk.vtkRenderWindowInteractor()
+#     rw_interactor.SetRenderWindow(render_window)
+#     rw_interactor.SetInteractorStyle(rw_style)
+#     render_window.Render()
+#     rw_interactor.Initialize()
+#     rw_interactor.Start()
+
+
 def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_radius, color=screw_setting.color):
     renderer = vtk.vtkRenderer()
+    renderer.SetBackground(1, 1, 1)
     for i in range(0, len(PCDs)):
         vtk_points = vtk.vtkPoints()
         vtk_cells = vtk.vtkCellArray()
@@ -45,6 +84,7 @@ def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_r
     render_window.Render()
     rw_interactor.Initialize()
     rw_interactor.Start()
+
 
 
 def stl_visualization_by_vtk(result_stls, origin_stls, color=screw_setting.color):

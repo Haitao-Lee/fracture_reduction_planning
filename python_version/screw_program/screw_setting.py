@@ -5,7 +5,7 @@ import numpy as np
 # 不清楚为何直接用相对路径读不出来
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
-data_name = 'data0092'
+data_name = 'data0003'
 
 # the directory that store pcd files
 pcd_dir = cwd + '/cases/' + data_name + '/face_pointcloud'
@@ -53,6 +53,10 @@ sp_radius = 60
 
 # radius of screw
 screw_radius = 1.5
+screw_radius_list = [1.5, 1.75, 2, 2.25, 2.5, 3, 3.25]
+
+# radius of a single point
+pcd_radius = 0.1
 
 # length of screw
 screw_length = 30

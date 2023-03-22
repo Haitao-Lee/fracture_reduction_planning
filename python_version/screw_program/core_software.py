@@ -674,7 +674,7 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
         vec = vec/np.linalg.norm(vec)
         if np.dot(vec, direc.T) < 0:
             vec = -vec
-        rf_direc = vec  #+ path_info[i][0]
+        rf_direc = vec  #path_info[i][0]
         rf_path_info.append([rf_direc, point, id1, id2, 0, 0])
     for i in range(len(path_info)):
         dire = np.mean(allPoints[path_info[i][2]], axis=0) - np.mean(allPoints[path_info[i][3]], axis=0)

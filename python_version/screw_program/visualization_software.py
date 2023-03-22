@@ -272,8 +272,6 @@ def get_screw_actor(center, direct, length1, length2, radius=screw_setting.screw
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
     actor.GetProperty().SetColor(0.4, 0.4, 0.4)
-    # actor.RotateWXYZ(angle, rotate_axis[0], rotate_axis[1], rotate_axis[2])
-    # actor.AddPosition((length1 - length/2)*direct + center)
     return actor, tf_polydata
 
 

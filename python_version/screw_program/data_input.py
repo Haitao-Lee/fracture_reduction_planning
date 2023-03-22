@@ -9,7 +9,7 @@ import nibabel as nib
 def get_filenames(path, filetype):  # 输入路径、文件类型例如'.csv'
     names = []
     for _, _, files in os.walk(path):
-        # print(files)
+        print(files)
         for i in files:
             if os.path.splitext(i)[1] == filetype:
                 names.append(path + '/' + i)

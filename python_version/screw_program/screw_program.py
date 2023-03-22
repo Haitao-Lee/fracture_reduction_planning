@@ -29,3 +29,5 @@ def screw_program(stl_folder, pcd_folder):
         screw_info.append(np.array([cent - length2*dire, cent + length1*dire]))
         screw_actors.append(visualization_software.get_screw_actor(cent, dire, length1, length2)[0])
     return screw_info, screw_actors
+
+info, actors = screw_program(screw_setting.stl_dir, screw_setting.pcd_dir)

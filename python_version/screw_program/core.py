@@ -741,7 +741,7 @@ def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius, rate=1.2):
 #     dire4 = dire1 + dire2
 #     dire4 = dire4/np.linalg.norm(dire4)
 #     dires = [dire1, dire2, dire3, dire4]
-    
+
 #     test_point2 = cent - (length2)*dire
 #     for i in range(0, 4):
 #         tmp_center = test_point2 + radius*dires[i]
@@ -814,6 +814,8 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         id2 = info[3]
         # path_points = np.concatenate([all_points[id1], all_points[id2]], axis=0)
         cone = get_cone(dire)
+        if i != 0 and path_info[i-1][2] == id1 and path_info[i-1][3] == id2 and np.linalg.norm(path_info[i-1][0] - dire) < 1e-2:
+            cone = [rf_path_info[len(rf_path_info) - 1][0]]
         best_dir = dire
         best_length1 = 0
         best_length2 = 0
@@ -987,7 +989,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
             #     com_cp[idx1] = length1
             #     com_fp[idx1] = length1
             length1 = new_length1
-            length2 = new_length2 
+            length2 = new_length2
             if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or (min(length1, length2)/max(length1, length2) < 0.33 and min(length1, length2) < 20): # or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue
             # if length1 < 30 and length1/length2 < 0.33:
@@ -1016,6 +1018,14 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         if best_length1 == 0 or best_length2 == 0:
             continue
         print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f" % (len(rf_path_info)+1, end-start, best_length1, best_length2))
+        if i != 0 and path_info[i - 1][2] == id1 and path_info[i - 1][3] == id2 and np.linalg.norm(path_info[i - 1][0] - dire) < 1e-2:
+            if np.linalg.norm(cent - rf_path_info[len(rf_path_info) - 1][1]) < 12 * get_screw_radius() or best_length1 + best_length2 < 60:
+                if best_length1 + best_length2 > rf_path_info[len(rf_path_info) - 1][4] + rf_path_info[len(rf_path_info) - 1][5]:
+                    rf_path_info[i - 1] = [best_dir, cent, id1, id2, best_length1, best_length2]
+                    matched_pcds.extend(best_cone_pcd)
+                    continue
+                else:
+                    continue
         rf_path_info.append([best_dir, cent, id1, id2, best_length1, best_length2])
         matched_pcds.extend(best_cone_pcd)
         # visualization.points_visualization_by_vtk(rest_pcds, best_explore_points)
@@ -1083,7 +1093,7 @@ def path_program(frac_pcds, all_pcds, rest_pcds):
             if np.where(t2 == 0)[0].shape[0] != 0:
                 f_id2 = j
         frac_id.append([f_id1, f_id2])
-        
+
         allPoints1 = np.empty((0, 3))
         for j in range(len(all_points)):
             allPoints1 = np.concatenate([allPoints1, all_points[j]], axis=0)
@@ -1139,7 +1149,7 @@ def path_program(frac_pcds, all_pcds, rest_pcds):
                     pca.fit(points)
                     vec = np.array(pca.components_[0, :])
                     vec = vec/np.linalg.norm(vec)
-                    
+
                     # c_dsbt = np.dot(center, vec.T)
                     dsp_dsbt = np.dot(points, vec.T)
                     min_val = dsp_dsbt[np.argmin(dsp_dsbt)]
@@ -1152,20 +1162,20 @@ def path_program(frac_pcds, all_pcds, rest_pcds):
                         # # max_val1 = dsp_dsbt1[np.argmax(dsp_dsbt1)]
                         # indices11 = np.array(np.where(dsp_dsbt1 < c_dsbt)).flatten()
                         # indices12 = np.array(np.where(dsp_dsbt1 > c_dsbt)).flatten()
-                        
+
                         # dsp_dsbt2 = np.dot(points2, vec)
                         # # min_val2 = dsp_dsbt2[np.argmin(dsp_dsbt2)]
                         # # max_val2 = dsp_dsbt2[np.argmax(dsp_dsbt2)]
                         # indices21 = np.array(np.where(dsp_dsbt2 < c_dsbt)).flatten()
                         # indices22 = np.array(np.where(dsp_dsbt2 > c_dsbt)).flatten()
-                        
+
                         # ps11 = points1[indices11]
                         # ps12 = points1[indices21]
-                        
+
                         # ps21 = points2[indices12]
                         # ps22 = points2[indices22]
-                        
-                        path_center1, path_center2 = get_2_screw_implant_positions_by_Chebyshev_center(point1, point2, length_rate/6)
+
+                        path_center1, path_center2 = get_2_screw_implant_positions_by_Chebyshev_center(point1, point2, length_rate/2)
                         info1 = [info[0], path_center1, info[2], info[3], 0, 0]
                         info2 = [info[0], path_center2, info[2], info[3], 0, 0]
                         id_record[info[2]] = id_record[info[2]] + 1
@@ -1217,7 +1227,7 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
         # tmp = 0
         dire = np.mean(allPoints[path_info[i][2]], axis=0) - np.mean(allPoints[path_info[i][3]], axis=0)
         dire = dire/np.linalg.norm(dire)
-        if np.abs(np.dot(dire, vec.T)) < 0.8:
+        if np.abs(np.dot(dire, vec.T)) < 0.6:
             rf_path_info[i][0] = dire
             # rf_path_info[i][4] = 0
             # rf_path_info[i][5] = 0
