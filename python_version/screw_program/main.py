@@ -58,8 +58,9 @@ def screw_program(args):
     # rf_path_info_v2 = path_program.refine_path_info_v2(path_info, all_pcds)
     
     # rf_path_info_v3 = path_program.refine_path_info_v3(path_info, all_pcds)
+    # visualization.best_result_visualization(stls, path_info, args.color)
     rf_path_info_v4 = core.refine_path_info_v4(path_info, rest_pcds, rest_pcds_for_explore)
-    # visualization.compare_screw_program2(stls, path_info, rf_path_info_v4, args.color)
+    visualization.compare_screw_program2(stls, path_info, rf_path_info_v4, args.color)
     # visualization.stl_pcd_visualization_with_path_by_vtk(stls, frac_pcds, rf_path_info_v4, args.color)
     visualization.best_result_visualization(stls, rf_path_info_v4, args.color)
     print(np.array(rf_path_info_v4))

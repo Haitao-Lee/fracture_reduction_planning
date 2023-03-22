@@ -5,7 +5,7 @@ import numpy as np
 # 不清楚为何直接用相对路径读不出来
 cwd = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
-data_name = 'data0003'
+data_name = 'data0090'
 
 # the directory that store pcd files
 pcd_dir = cwd + '/cases/' + data_name + '/face_pointcloud'
@@ -65,7 +65,7 @@ screw_length = 30
 line_length_rate = 20
 
 # radius in KDTree searching while refining path_info
-path_refine_radius = 40
+path_refine_radius = 20
 
 # eps in relu_refine_dir
 rrd_eps_max = 0.4

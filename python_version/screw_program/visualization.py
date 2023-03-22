@@ -46,7 +46,7 @@ import os
 
 def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_radius, color=screw_setting.color):
     renderer = vtk.vtkRenderer()
-    renderer.SetBackground(1, 1, 1)
+    # renderer.SetBackground(1, 1, 1)
     for i in range(0, len(PCDs)):
         vtk_points = vtk.vtkPoints()
         vtk_cells = vtk.vtkCellArray()
