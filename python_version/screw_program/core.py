@@ -64,7 +64,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
     res = max_val - min_val
     s_r = get_screw_radius()
     initial_center = np.mean(all_points, axis=0)
-    tree = spatial.KDTree(all_points)
+    # tree = spatial.KDTree(all_points)
     # plane_info, _, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
     normal = get_screw_dir_by_SVM(points1, points2)
     if res < 12 * s_r:
@@ -91,8 +91,9 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
                 normal1 = np.array([normal[1],  -normal[0], 0])
             normal1 = normal1 / np.linalg.norm(normal1)
             normal2 = np.cross(normal1, normal)
+            normal2 = normal2 / np.linalg.norm(normal2)
             normal3 = normal1 - normal2
-            normal3 = np.linalg.norm(normal3)
+            normal3 = normal3/np.linalg.norm(normal3)
             normal4 = normal1 + normal2
             normal4 = normal4 / np.linalg.norm(normal4)
             normals = [normal1, normal2, normal3, normal4]
@@ -100,28 +101,59 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
             init_length = 2
             tmp_res = 0
             while tmp_res == 0:
-                for i in range(4):
-                    tmp_center = center + init_length * normals[i]
-                    tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
-                    indices = np.array(np.where(tmp_norm < 5)).flatten()
-                    if indices.shape[0] == 0:
-                        tmp_res = init_length
-                        break
-                    tmp_center = center - init_length * normals[i]
-                    tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
-                    indices = np.array(np.where(tmp_norm < 5)).flatten()
-                    if indices.shape[0] == 0:
-                        tmp_res = init_length
-                        break
-                # tmp_centers = np.array(tmp_centers)
-                # indices = tree.query_ball_point(tmp_centers, 3, workers=-1)
-                # indices = np.array(indices)
-                # for i in range(indices.shape[0]):
-                #     if len(indices[i]) == 0:
-                #         tmp_res = init_length
-                #         break
+                tmp_center = center + init_length * normals[0]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center - init_length * normals[0]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center + init_length * normals[1]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center - init_length * normals[1]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center + init_length * normals[2]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center - init_length * normals[2]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center + init_length * normals[3]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center - init_length * normals[3]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
                 init_length = init_length + 0.4
-
+            balls = []
+            for i in range(4):
+                balls.append(center + tmp_res * normals[i])
+                balls.append(center - tmp_res * normals[i])
             # tmp_pca = PCA()
             # tmp_pca.fit(tmp_points)
             # tmp_vec1 = np.array(tmp_pca.components_[0, :])
@@ -151,18 +183,18 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
                 # min_point = tmp_points[np.argmin(tmp_dsp_dsbt)]
                 # max_point = tmp_points[np.argmax(tmp_dsp_dsbt)]
                 # best_center = (min_point + max_point)/2
-            tmp_indices = tree.query_ball_point(tmp_points, 0.5, workers=-1)
-            new_indices = np.empty((0, 1))
-            for k in range(len(tmp_indices)):
-                new_indices = np.concatenate([new_indices, np.array(tmp_indices[k]).reshape(-1, 1)], axis=0)
-            new_indices = new_indices.astype(np.int).flatten()
-            tmp_all_points = all_points.copy()
-            tmp_all_points = np.delete(tmp_all_points, new_indices, axis=0)
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(tmp_all_points)
-            tmp_pcd = o3d.geometry.PointCloud()
-            tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
-            visualization.points_visualization_by_vtk([tmp_pcd, pcd], [np.mean(tmp_points, axis=0), best_center])
+            # tmp_indices = tree.query_ball_point(tmp_points, 0.5, workers=-1)
+            # new_indices = np.empty((0, 1))
+            # for k in range(len(tmp_indices)):
+            #     new_indices = np.concatenate([new_indices, np.array(tmp_indices[k]).reshape(-1, 1)], axis=0)
+            # new_indices = new_indices.astype(np.int).flatten()
+            # tmp_all_points = all_points.copy()
+            # tmp_all_points = np.delete(tmp_all_points, new_indices, axis=0)
+            # pcd = o3d.geometry.PointCloud()
+            # pcd.points = o3d.utility.Vector3dVector(tmp_all_points)
+            # tmp_pcd = o3d.geometry.PointCloud()
+            # tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
+            # visualization.points_visualization_by_vtk([tmp_pcd, pcd], balls, radius=3)#[np.mean(tmp_points, axis=0), best_center])
         return best_center
 
 
@@ -206,10 +238,13 @@ def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2, length_r
         # tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
         # visualization.points_visualization_by_vtk([tmp_pcd, pcd], [np.mean(tmp_points, axis=0), best_center1, best_center2])
         normal1 = np.array([normal[2], 0, -normal[0]])
+        if np.linalg.norm(normal1) == 0:
+            normal1 = np.array([normal[1],  -normal[0], 0])
         normal1 = normal1 / np.linalg.norm(normal1)
         normal2 = np.cross(normal1, normal)
+        normal2 = normal2 / np.linalg.norm(normal2)
         normal3 = normal1 - normal2
-        normal3 = np.linalg.norm(normal3)
+        normal3 = normal3/np.linalg.norm(normal3)
         normal4 = normal1 + normal2
         normal4 = normal4 / np.linalg.norm(normal4)
         normals = [normal1, normal2, normal3, normal4]
@@ -217,27 +252,56 @@ def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2, length_r
         init_length = 1.5
         tmp_res = 0
         while tmp_res == 0:
-            # tmp_centers = []
-            for i in range(4):
-                # tmp_centers.append(center + init_length*normals[i])
-                # tmp_centers.append(center - init_length*normals[i])
-                tmp_center = center + init_length * normals[i]
-                tmp_norm = np.linalg.norm(all_points - np.expand_dims(
-                    tmp_center, 0).repeat(all_points.shape[0], axis=0),
-                                          axis=1)
+            while tmp_res == 0:
+                tmp_center = center + init_length * normals[0]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
                 indices = np.array(np.where(tmp_norm < 3)).flatten()
                 if indices.shape[0] == 0:
                     tmp_res = init_length
                     break
-                tmp_center = center - init_length * normals[i]
-                tmp_norm = np.linalg.norm(all_points - np.expand_dims(
-                    tmp_center, 0).repeat(all_points.shape[0], axis=0),
-                                          axis=1)
+                tmp_center = center - init_length * normals[0]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
                 indices = np.array(np.where(tmp_norm < 3)).flatten()
                 if indices.shape[0] == 0:
                     tmp_res = init_length
                     break
-            init_length = init_length + 0.2
+                tmp_center = center + init_length * normals[1]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center - init_length * normals[1]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center + init_length * normals[2]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center - init_length * normals[2]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center + init_length * normals[3]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                tmp_center = center - init_length * normals[3]
+                tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+                indices = np.array(np.where(tmp_norm < 3)).flatten()
+                if indices.shape[0] == 0:
+                    tmp_res = init_length
+                    break
+                init_length = init_length + 0.4
         tmp_position = tmp_position + s_r
         if tmp_res >= max_res1 and tmp_size > max_size1:
             if np.linalg.norm(center - best_center1) > length_rate * s_r:
@@ -882,12 +946,11 @@ def get_optimal_info(path_info,
         id2 = info[3]
         # path_points = np.concatenate([all_points[id1], all_points[id2]], axis=0)
         cone = get_cone(dire)
-        if i != 0 and path_info[i - 1][2] == id1 and path_info[ i - 1][3] == id2 and np.linalg.norm(path_info[i - 1][0] - dire) < 1e-2 and len(rf_path_info) != 0:
+        if i != 0 and path_info[i - 1][2] == id1 and path_info[i - 1][3] == id2 and np.linalg.norm(path_info[i - 1][0] - dire) < 1e-2 and len(rf_path_info) != 0:
             # cone = [rf_path_info[len(rf_path_info) - 1][0]]
             # continue
             # cent = -0.8*rf_path_info[len(rf_path_info) - 1][1] + 1.8*cent
-            cone = get_cone(rf_path_info[len(rf_path_info) - 1][0],
-                            angle=np.pi / 3)
+            cone = get_cone(rf_path_info[-1][0], angle=np.pi / 3)
         best_dir = dire
         best_length1 = 0
         best_length2 = 0
@@ -1091,25 +1154,18 @@ def get_optimal_info(path_info,
             # if length1 < 30 and length1/length2 < 0.33:
             #     continue
             continue_ornot = True
-            # if min(length1, length2) > min(best_length1, best_length2):
-            #     continue_ornot = False
-            # elif (max(length1, length2) - max(best_length1, best_length2)) / (min(best_length1, best_length2) - min(length1, length2) + 0.01) > 2:
-            #     continue_ornot = False
-            # if length1 >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
-            #     continue_ornot = False
-            # elif com_cp[idx2] > close_length2 and (length2 - best_length2) / (best_length1 - length1 + 0.01) > 0.8:
-            #     continue_ornot = False
-            t_length1 = length1
-            t_length2 = length2
-            if len(rf_path_info) in [1]:
-                n_dir = - n_dir
-                tmp_idx = idx1
-                idx1 = idx2
-                idx2 = tmp_idx
-                length1 = com_cp[idx1]
-                length2 = max(com_fp[idx2], com_cp[idx2]+4)
-            if 0.8*length2 + 0.2*length1 > 0.8*best_length2 + 0.2*best_length1 and length1/length2 > 0.4 and length2/length1 > 0.4:
+            if min(length1, length2) > min(best_length1, best_length2):
                 continue_ornot = False
+            elif (max(length1, length2) - max(best_length1, best_length2)) / (min(best_length1, best_length2) - min(length1, length2) + 0.01) > 2:
+                continue_ornot = False
+            if length1 >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
+                continue_ornot = False
+            elif com_cp[idx2] > close_length2 and (length2 - best_length2) / (best_length1 - length1 + 0.01) > 0.8:
+                continue_ornot = False
+            # t_length1 = length1
+            # t_length2 = length2
+            # if 0.8*length2 + 0.2*length1 > 0.8*best_length2 + 0.2*best_length1: # and length1/length2 > 0.2 and length2/length1 > 0.2:
+            #     continue_ornot = False
             if continue_ornot:
                 continue
             best_length1 = length1
@@ -1124,9 +1180,10 @@ def get_optimal_info(path_info,
         if best_length1 == 0 or best_length2 == 0:
             continue
         if i != 0 and rf_path_info[-1][2] == id1 and rf_path_info[-1][3] == id2 and np.linalg.norm(path_info[i-1][0] - dire) < 1e-2:
-            if np.linalg.norm(cent - rf_path_info[-1][1]) < 12 * get_screw_radius() or best_length1 + best_length2 < 60:
+            if np.linalg.norm(cent - rf_path_info[-1][1]) < 16 * get_screw_radius() and np.abs(rf_path_info[-1][4] + rf_path_info[-1][5] - (best_length1 + best_length2)) > 40:
                 if best_length1 + best_length2 > rf_path_info[-1][4] + rf_path_info[-1][5]:
                     rf_path_info[-1] = [best_dir, cent, id1, id2, best_length1, best_length2]
+                    print("螺钉%d方向规划时间:%.2f秒, length1:%.2f, length2:%.2f" % (len(rf_path_info) + 1, end - start, best_length1, best_length2))
                     matched_pcds.extend(best_cone_pcd)
                     continue
                 else:
@@ -1153,6 +1210,12 @@ def get_optimal_info(path_info,
     # for i in range(len(rf_path_info)):
     #     isExplore_vis(matched_pcds, rf_path_info[i])
     # visualization.points_visualization_by_vtk(matched_pcds)
+    # for i in range(len(rf_path_info)):
+    #     if i in [0, 4]:
+    #         rf_path_info[i][0] = -rf_path_info[i][0]
+    #         tmp = rf_path_info[i][4]
+    #         rf_path_info[i][4] = rf_path_info[i][5] - 4
+    #         rf_path_info[i][5] = tmp + 4
     return rf_path_info
 
 
@@ -1365,8 +1428,8 @@ def refine_path_info(path_info,
         rf_path_info[i][0] = dire
         # if np.abs(np.dot(dire, vec.T)) > 0.5 and frac_size[i] > 30000:
         #     rf_path_info[i][0] = dire
-            # rf_path_info[i][4] = 0
-            # rf_path_info[i][5] = 0
+        #     rf_path_info[i][4] = 0
+        #     rf_path_info[i][5] = 0
     # visualization.points_visualization_by_vtk(pcds, centers, radius)
     return rf_path_info
 
