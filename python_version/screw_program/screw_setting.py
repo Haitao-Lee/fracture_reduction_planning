@@ -26,12 +26,12 @@ save_stl = cwd + '/export_screw_stl/' + data_name
 # img_dir = cwd + '/data/image0014.nii.gz'
 
 # color space
-color = [0,   1,   0,
-         0,   0,   1,
-         1,   1,   0,
-         1,   0,   1,
-         0,   1,   1,
-         1,   1,   1]
+color = [128/255,   174/255,   128/255,
+         216/255,   101/255,   79/255,
+         230/255,   220/255,   70/255,
+         183/255,   156/255,   220/255,
+         111/255,   184/255,   210/255,
+         241/255,   214/255,   145/255]
 
 # the number of neighborhoods in remove outliers
 nd = 20

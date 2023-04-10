@@ -4,6 +4,7 @@ import numpy as np
 import screw_setting
 import math
 import os
+import matplotlib.pyplot as plt
 
 
 # def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_radius, pcd_radius=screw_setting.pcd_radius, color=screw_setting.color):
@@ -43,10 +44,27 @@ import os
 #     rw_interactor.Initialize()
 #     rw_interactor.Start()
 
+ 
+def viz_matplot(points):
+    x = points[:, 0]  # x position of point
+    y = points[:, 1]  # y position of point
+    z = points[:, 2]  # z position of point
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(x,   # x
+               y,   # y
+               z,   # z
+               c=z, # height data for color
+               cmap='rainbow',
+               marker="x")
+    ax.axis()
+    plt.show()
+
+
 
 def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_radius, color=screw_setting.color):
     renderer = vtk.vtkRenderer()
-    # renderer.SetBackground(1, 1, 1)
+    renderer.SetBackground(1, 1, 1)
     for i in range(0, len(PCDs)):
         vtk_points = vtk.vtkPoints()
         vtk_cells = vtk.vtkCellArray()
@@ -335,7 +353,7 @@ def get_sphere_actor(center, radius, color=(1, 1, 1)):
 def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_setting.color, save=screw_setting.save_stl):
     stl_renderer = vtk.vtkRenderer()
     stl_renderer.SetViewport(0, 0.5, 0.5, 1)
-    # stl_renderer.SetBackground(1, 1, 1)
+    stl_renderer.SetBackground(1, 1, 1)
     for i in range(0, len(stls)):
         stl = stls[i]
         stl_ply_mapper = vtk.vtkPolyDataMapper()
@@ -391,7 +409,7 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
         stl_writer.Write()
     pcd_renderer = vtk.vtkRenderer()
     pcd_renderer.SetViewport(0.5, 0.5, 1, 1)
-    # pcd_renderer.SetBackground(1, 1, 1)
+    pcd_renderer.SetBackground(1, 1, 1)
     for i in range(0, len(pcds)):
         vtk_points = vtk.vtkPoints()
         vtk_cells = vtk.vtkCellArray()

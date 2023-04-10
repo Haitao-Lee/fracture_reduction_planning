@@ -64,9 +64,72 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
     res = max_val - min_val
     s_r = get_screw_radius()
     initial_center = np.mean(all_points, axis=0)
-    # tree = spatial.KDTree(all_points)
+    tree = spatial.KDTree(all_points)
     # plane_info, _, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
     normal = get_screw_dir_by_SVM(points1, points2)
+    normal1 = np.array([normal[2], 0, -normal[0]])
+    if np.linalg.norm(normal1) == 0:
+        normal1 = np.array([normal[1],  -normal[0], 0])
+    normal1 = normal1 / np.linalg.norm(normal1)
+    normal2 = np.cross(normal1, normal)
+    normal2 = normal2 / np.linalg.norm(normal2)
+    normal3 = normal1 - normal2
+    normal3 = normal3/np.linalg.norm(normal3)
+    normal4 = normal1 + normal2
+    normal4 = normal4 / np.linalg.norm(normal4)
+    normals = [normal1, normal2, normal3, normal4]
+    # initial_res = 0
+    # init_length = 0
+    # while initial_res == 0:
+    #     tmp_center = initial_center + init_length * normals[0]
+    #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    #     indices = np.array(np.where(tmp_norm < 3)).flatten()
+    #     if indices.shape[0] == 0:
+    #         initial_res = init_length
+    #         break
+    #     tmp_center = initial_center - init_length * normals[0]
+    #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    #     indices = np.array(np.where(tmp_norm < 3)).flatten()
+    #     if indices.shape[0] == 0:
+    #         initial_res = init_length
+    #         break
+    #     tmp_center = initial_center + init_length * normals[1]
+    #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    #     indices = np.array(np.where(tmp_norm < 3)).flatten()
+    #     if indices.shape[0] == 0:
+    #         initial_res = init_length
+    #         break
+    #     tmp_center = initial_center - init_length * normals[1]
+    #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    #     indices = np.array(np.where(tmp_norm < 3)).flatten()
+    #     if indices.shape[0] == 0:
+    #         initial_res = init_length
+    #         break
+    #     tmp_center = initial_center + init_length * normals[2]
+    #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    #     indices = np.array(np.where(tmp_norm < 3)).flatten()
+    #     if indices.shape[0] == 0:
+    #         initial_res = init_length
+    #         break
+    #     tmp_center = initial_center - init_length * normals[2]
+    #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    #     indices = np.array(np.where(tmp_norm < 3)).flatten()
+    #     if indices.shape[0] == 0:
+    #         initial_res = init_length
+    #         break
+    #     tmp_center = initial_center + init_length * normals[3]
+    #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    #     indices = np.array(np.where(tmp_norm < 3)).flatten()
+    #     if indices.shape[0] == 0:
+    #         initial_res = init_length
+    #         break
+    #     tmp_center = initial_center - init_length * normals[3]
+    #     tmp_norm = np.linalg.norm(all_points - np.expand_dims(tmp_center, 0).repeat(all_points.shape[0], axis=0), axis=1)
+    #     indices = np.array(np.where(tmp_norm < 3)).flatten()
+    #     if indices.shape[0] == 0:
+    #         initial_res = init_length
+    #         break
+    #     init_length = init_length + 0.04
     if res < 12 * s_r:
         # _, all_tmp_points, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps/2)
         # initial_center = np.mean(all_tmp_points, axis=0)
@@ -86,17 +149,6 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
             tmp_points = all_points[indices]
             # plane_info, _, _ = geometry.ransac_planefit(tmp_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
             # normal = plane_info[3:6]
-            normal1 = np.array([normal[2], 0, -normal[0]])
-            if np.linalg.norm(normal1) == 0:
-                normal1 = np.array([normal[1],  -normal[0], 0])
-            normal1 = normal1 / np.linalg.norm(normal1)
-            normal2 = np.cross(normal1, normal)
-            normal2 = normal2 / np.linalg.norm(normal2)
-            normal3 = normal1 - normal2
-            normal3 = normal3/np.linalg.norm(normal3)
-            normal4 = normal1 + normal2
-            normal4 = normal4 / np.linalg.norm(normal4)
-            normals = [normal1, normal2, normal3, normal4]
             center = np.mean(tmp_points, axis=0)
             init_length = 2
             tmp_res = 0
@@ -174,8 +226,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
             # elif min(tmp_res1, tmp_res2) >= 12*s_r:
             #     tmp_res = max(tmp_res1, tmp_res2)
             tmp_position = tmp_position + s_r
-            if tmp_res > max_res or (tmp_res == max_res
-                                     and indices.shape[0] > last_num):
+            if tmp_res > max_res or (tmp_res == max_res and indices.shape[0] > last_num):
                 max_res = tmp_res
                 last_num = indices.shape[0]
                 # _, tmp_points, _ = geometry.ransac_planefit(tmp_points, ransac_n=3, max_dst=screw_setting.ransac_eps/5)
@@ -183,20 +234,23 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
                 # min_point = tmp_points[np.argmin(tmp_dsp_dsbt)]
                 # max_point = tmp_points[np.argmax(tmp_dsp_dsbt)]
                 # best_center = (min_point + max_point)/2
-            # tmp_indices = tree.query_ball_point(tmp_points, 0.5, workers=-1)
-            # new_indices = np.empty((0, 1))
-            # for k in range(len(tmp_indices)):
-            #     new_indices = np.concatenate([new_indices, np.array(tmp_indices[k]).reshape(-1, 1)], axis=0)
-            # new_indices = new_indices.astype(np.int).flatten()
-            # tmp_all_points = all_points.copy()
-            # tmp_all_points = np.delete(tmp_all_points, new_indices, axis=0)
-            # pcd = o3d.geometry.PointCloud()
-            # pcd.points = o3d.utility.Vector3dVector(tmp_all_points)
-            # tmp_pcd = o3d.geometry.PointCloud()
-            # tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
-            # visualization.points_visualization_by_vtk([tmp_pcd, pcd], balls, radius=3)#[np.mean(tmp_points, axis=0), best_center])
+            tmp_indices = tree.query_ball_point(tmp_points, 0.5, workers=-1)
+            new_indices = np.empty((0, 1))
+            for k in range(len(tmp_indices)):
+                new_indices = np.concatenate([new_indices, np.array(tmp_indices[k]).reshape(-1, 1)], axis=0)
+            new_indices = new_indices.astype(np.int).flatten()
+            tmp_all_points = all_points.copy()
+            tmp_all_points = np.delete(tmp_all_points, new_indices, axis=0)
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(tmp_all_points)
+            tmp_pcd = o3d.geometry.PointCloud()
+            tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
+            visualization.points_visualization_by_vtk([tmp_pcd, pcd], balls, radius=3) #[np.mean(tmp_points, axis=0), best_center])
+            # visualization.viz_matplot(tmp_points)
+            
+        # print('initial center:%.2fmm,  Chebyshev center:%.2fmm'% (initial_res, max_res))
         return best_center
-
+ 
 
 def get_2_screw_implant_positions_by_Chebyshev_center(points1, points2, length_rate):
     points1 = np.array(points1)
@@ -524,62 +578,145 @@ def add_screw_length(path_info,
                      eps=screw_setting.screw_radius,
                      dist_eps=screw_setting.dist_eps):
     rf_path_info = []
-    allPoints = np.empty((0, 3))
+    restPoints = np.empty((0, 3))
     for pcd in pcds:
         points = np.asarray(pcd.points)
-        allPoints = np.concatenate([allPoints, points], axis=0)
+        restPoints = np.concatenate([restPoints, points], axis=0)
     # tree = spatial.KDTree(allPoints)
-    matched_pcds = []
     for info in path_info:
-        dire = info[0]
+        n_dir = info[0]
         cent = info[1]
         id1 = info[2]
         id2 = info[3]
-        tmp = allPoints - np.expand_dims(cent, 0).repeat(allPoints.shape[0],
-                                                         axis=0)
-        norm = np.linalg.norm(tmp, axis=1)
-        # tmp = tmp/np.expand_dims(norm , 1).repeat(3, axis=1)
-        # angle = np.arccos(np.abs(np.dot(tmp, dire.T)))*180/np.pi
-        r_dist = np.sqrt(norm * norm - np.abs(np.dot(tmp, dire.T)) *
-                         np.abs(np.dot(tmp, dire.T)))
+        cent_var = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
+        norm = np.linalg.norm(cent_var, axis=1)
+        r_dist = np.sqrt(norm**2 - np.abs(np.dot(cent_var, n_dir.T))**2)
         indices = np.argwhere(r_dist < eps).flatten()
-        tmp_points = allPoints[indices]
-        y_pred = DBSCAN(eps=dist_eps).fit_predict(tmp_points)
+        if indices.shape[0] == 0:
+            continue
+        tmp_points = restPoints[indices]
+        y_pred = DBSCAN(eps=dist_eps / 2).fit_predict(tmp_points)
         y_uniq = np.unique(np.array(y_pred))
-        tmp_clst = []
-        center_list = []
+        # center_list = []
+        fp_list = []
+        cp_list = []
+        ps = None
+        cone_pcd = []
+        explore_points = []
         for y in y_uniq:
             idx = np.argwhere(y_pred == y).flatten()
             ps = np.array(tmp_points[idx])
-            center_list.append(np.mean(ps, axis=0))
-            tmp_clst.append(ps)
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(ps)
-            matched_pcds.append(pcd)
-        center_list = np.array(center_list)
-        ori_cent = np.expand_dims(cent, 0).repeat(center_list.shape[0], axis=0)
-        dif_cent = center_list - ori_cent
-        com_cent = np.linalg.norm(dif_cent, axis=1)
-        index = np.argmin(com_cent).flatten()[0]
-        length1 = 1000
-        length2 = 1000
+            # if ps.shape[0] < 200:
+            #     continue
+            dist = np.dot(ps, n_dir.T)
+            # center_list.append(np.mean(ps, axis=0))
+            cp_list.append(ps[np.argmin(dist).flatten()[0]])
+            fp_list.append(ps[np.argmax(dist).flatten()[0]])
+            tmp_pcd = o3d.geometry.PointCloud()
+            tmp_pcd.points = o3d.utility.Vector3dVector(ps)
+            cone_pcd.append(tmp_pcd)
+        # center_list = np.array(center_list)
+        fp_list = np.array(fp_list)
+        cp_list = np.array(cp_list)
+        ori_cent = np.expand_dims(cent, 0).repeat(fp_list.shape[0], axis=0)
+        # dif_cent = center_list - ori_cent
+        dir_fp = fp_list - ori_cent
+        dir_cp = cp_list - ori_cent
+        # com_cent = np.linalg.norm(dif_cent, axis=1)
+        com_fp = np.linalg.norm(dir_fp, axis=1)
+        com_cp = np.linalg.norm(dir_cp, axis=1)
+        # index = np.argmin(com_cent).flatten()[0]
+        length1 = 0
+        length2 = 0
         tmp_length1 = 0
         tmp_length2 = 0
-        if dif_cent.shape[0] <= 1:
-            length1 = 0
-            length2 = 0
-        for i in range(dif_cent.shape[0]):
-            if i != index:
-                pn = np.dot(dif_cent[i], dire)
-                if pn > 0:
-                    tmp_length1 = com_cent[i]
-                elif pn < 0:
-                    tmp_length2 = com_cent[i]
-                if length1 > tmp_length1 or length1 == 0:
-                    length1 = tmp_length1
-                if length2 > tmp_length2 or length2 == 0:
-                    length2 = tmp_length2
-        rf_path_info.append([dire, cent, id1, id2, length1, length2])
+        idx1 = -1
+        idx2 = -1
+        if com_fp.shape[0] <= 1:
+            continue
+        for k in range(com_fp.shape[0]):
+            if com_fp[k] < com_cp[k]:
+                tmp_com = com_cp[k].copy()
+                com_cp[k] = com_fp[k]
+                com_fp[k] = tmp_com
+                tmp_diff = dir_cp[k].copy()
+                dir_cp[k] = dir_fp[k]
+                dir_fp[k] = tmp_diff
+        tmp_com_cp = np.array([com_cp[0]])
+        tmp_com_fp = np.array([com_fp[0]])
+        tmp_dir_cp = np.array([dir_cp[0]])
+        for m in range(1, com_cp.shape[0]):
+            for k in range(tmp_com_cp.shape[0]):
+                if com_cp[m] <= tmp_com_cp[k]:
+                    tmp_com_cp = np.insert(tmp_com_cp,
+                                        k,
+                                        com_cp[m],
+                                        axis=0)
+                    tmp_com_fp = np.insert(tmp_com_fp,
+                                        k,
+                                        com_fp[m],
+                                        axis=0)
+                    tmp_dir_cp = np.insert(tmp_dir_cp,
+                                        k,
+                                        dir_cp[m],
+                                        axis=0)
+                    break
+                elif k == tmp_com_cp.shape[0] - 1:
+                    tmp_com_cp = np.concatenate([tmp_com_cp, [com_cp[m]]],
+                                                axis=0)
+                    tmp_com_fp = np.concatenate([tmp_com_fp, [com_fp[m]]],
+                                                axis=0)
+                    tmp_dir_cp = np.concatenate([tmp_dir_cp, [dir_cp[m]]],
+                                                axis=0)
+                    break
+        com_cp = tmp_com_cp
+        com_fp = tmp_com_fp
+        dir_cp = tmp_dir_cp
+        explore_flag1 = False
+        explore_flag2 = False
+        for k in range(com_fp.shape[0]):
+            pn = np.dot(dir_cp[k], n_dir.T)
+            if pn > 0 and not explore_flag1:
+                tmp_length1 = com_cp[k]
+                # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
+                if idx1 == -1:
+                    explore_length1 = tmp_length1 / 2
+                    if not isExploreV1(pcds, [n_dir, cent, id1, id2, explore_length1, 0]):
+                        length1 = tmp_length1
+                        idx1 = k
+                    else:
+                        explore_points.append(cent + n_dir * explore_length1)
+                        explore_flag1 = True
+                else:
+                    explore_length1 = (tmp_length1 + com_fp[idx1]) / 2
+                    explore_points.append(cent + n_dir * explore_length1)
+                    explore_points.append(cent + n_dir * (com_cp[idx1] + com_fp[idx1]) / 2)
+                    if not isExploreV1(pcds, [n_dir, cent, id1, id2, explore_length1, 0]) and not isExploreV1(pcds, [n_dir, cent, id1, id2, (com_cp[idx1] + com_fp[idx1]) / 2, 0]):
+                        length1 = tmp_length1
+                        idx1 = k
+                    else:
+                        explore_flag1 = True
+            elif pn <= 0 and not explore_flag2:
+                tmp_length2 = com_cp[k]
+                # visualization.points_visualization_by_vtk(rest_pcds_for_explore, centers=[cent+(tmp_length1 + com_fp[idx1])/2*n_dir])
+                if idx2 == -1:
+                    explore_length2 = tmp_length2 / 2
+                    explore_points.append(cent - n_dir * explore_length2)
+                    if not isExploreV2(pcds, [n_dir, cent, id1, id2, 0, explore_length2]):
+                        length2 = tmp_length2
+                        idx2 = k
+                    else:
+                        explore_flag2 = True
+                else:
+                    explore_length2 = (tmp_length2 + com_fp[idx2]) / 2
+                    explore_points.append(cent - n_dir * explore_length2)
+                    explore_points.append(cent - n_dir * (com_cp[idx2] + com_fp[idx2]) / 2)
+                    if not isExploreV2(pcds, [n_dir, cent, id1, id2, 0, explore_length2]) and not isExploreV2(pcds, [n_dir, cent, id1, id2, 0, (com_cp[idx2] + com_fp[idx2]) / 2]):
+                        length2 = tmp_length2
+                        idx2 = k
+                    else:
+                        explore_flag2 = True
+        rf_path_info.append([n_dir, cent, id1, id2, length1, length2])
     # visualization.points_visualization_by_vtk(matched_pcds)
     return rf_path_info
 
@@ -958,8 +1095,7 @@ def get_optimal_info(path_info,
         close_length2 = 0
         # tmp = allPoints - np.expand_dims(cent, 0).repeat(allPoints.shape[0], axis=0)
         # tmp = path_points - np.expand_dims(cent, 0).repeat(path_points.shape[0], axis=0)
-        cent_var = restPoints - np.expand_dims(cent, 0).repeat(
-            restPoints.shape[0], axis=0)
+        cent_var = restPoints - np.expand_dims(cent, 0).repeat(restPoints.shape[0], axis=0)
         norm = np.linalg.norm(cent_var, axis=1)
         best_cone_pcd = []
         # best_explore_points = []
@@ -1149,7 +1285,7 @@ def get_optimal_info(path_info,
             #     length1 = 60
             #     com_cp[idx1] = length1
             #     com_fp[idx1] = length1
-            if np.abs(length1) + np.abs(length2) < 8 * dist_eps or min(length1, length2) < 3 * dist_eps or ( min(length1, length2) / max(length1, length2) < 0.33 and min(length1, length2) < 20):  # or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
+            if np.abs(length1) + np.abs(length2) < 8 * dist_eps or min(length1, length2) < 3 * dist_eps or (min(length1, length2) / max(length1, length2) < 0.33 and min(length1, length2) < 20):  # or isExplore(rest_pcds_for_explore, [n_dir, cent, id1, id2, length1, length2]):
                 continue
             # if length1 < 30 and length1/length2 < 0.33:
             #     continue
@@ -1179,7 +1315,7 @@ def get_optimal_info(path_info,
         end = time.time()
         if best_length1 == 0 or best_length2 == 0:
             continue
-        if i != 0 and rf_path_info[-1][2] == id1 and rf_path_info[-1][3] == id2 and np.linalg.norm(path_info[i-1][0] - dire) < 1e-2:
+        if i != 0 and len(rf_path_info) != 0 and rf_path_info[-1][2] == id1 and rf_path_info[-1][3] == id2 and np.linalg.norm(path_info[i-1][0] - dire) < 1e-2:
             if np.linalg.norm(cent - rf_path_info[-1][1]) < 16 * get_screw_radius() and np.abs(rf_path_info[-1][4] + rf_path_info[-1][5] - (best_length1 + best_length2)) > 40:
                 if best_length1 + best_length2 > rf_path_info[-1][4] + rf_path_info[-1][5]:
                     rf_path_info[-1] = [best_dir, cent, id1, id2, best_length1, best_length2]
