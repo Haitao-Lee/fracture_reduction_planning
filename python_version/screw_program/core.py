@@ -10,6 +10,7 @@ from sklearn.decomposition import PCA
 import screw_setting
 import visualization
 import time
+import core_software
 
 
 def get_screw_dir_by_SVM(points1,
@@ -66,18 +67,18 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
     initial_center = np.mean(all_points, axis=0)
     tree = spatial.KDTree(all_points)
     # plane_info, _, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
-    normal = get_screw_dir_by_SVM(points1, points2)
-    normal1 = np.array([normal[2], 0, -normal[0]])
-    if np.linalg.norm(normal1) == 0:
-        normal1 = np.array([normal[1],  -normal[0], 0])
-    normal1 = normal1 / np.linalg.norm(normal1)
-    normal2 = np.cross(normal1, normal)
-    normal2 = normal2 / np.linalg.norm(normal2)
-    normal3 = normal1 - normal2
-    normal3 = normal3/np.linalg.norm(normal3)
-    normal4 = normal1 + normal2
-    normal4 = normal4 / np.linalg.norm(normal4)
-    normals = [normal1, normal2, normal3, normal4]
+    # normal = get_screw_dir_by_SVM(points1, points2)
+    # normal1 = np.array([normal[2], 0, -normal[0]])
+    # if np.linalg.norm(normal1) == 0:
+    #     normal1 = np.array([normal[1],  -normal[0], 0])
+    # normal1 = normal1 / np.linalg.norm(normal1)
+    # normal2 = np.cross(normal1, normal)
+    # normal2 = normal2 / np.linalg.norm(normal2)
+    # normal3 = normal1 - normal2
+    # normal3 = normal3/np.linalg.norm(normal3)
+    # normal4 = normal1 + normal2
+    # normal4 = normal4 / np.linalg.norm(normal4)
+    # normals = [normal1, normal2, normal3, normal4]
     # initial_res = 0
     # init_length = 0
     # while initial_res == 0:
@@ -147,8 +148,19 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
                 tmp_position = tmp_position + s_r
                 continue
             tmp_points = all_points[indices]
-            # plane_info, _, _ = geometry.ransac_planefit(tmp_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
-            # normal = plane_info[3:6]
+            plane_info, _, _ = geometry.ransac_planefit(tmp_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
+            normal = plane_info[3:6]
+            normal1 = np.array([normal[2], 0, -normal[0]])
+            if np.linalg.norm(normal1) == 0:
+                normal1 = np.array([normal[1],  -normal[0], 0])
+            normal1 = normal1 / np.linalg.norm(normal1)
+            normal2 = np.cross(normal1, normal)
+            normal2 = normal2 / np.linalg.norm(normal2)
+            normal3 = normal1 - normal2
+            normal3 = normal3/np.linalg.norm(normal3)
+            normal4 = normal1 + normal2
+            normal4 = normal4 / np.linalg.norm(normal4)
+            normals = [normal1, normal2, normal3, normal4]
             center = np.mean(tmp_points, axis=0)
             init_length = 2
             tmp_res = 0
@@ -245,7 +257,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
             pcd.points = o3d.utility.Vector3dVector(tmp_all_points)
             tmp_pcd = o3d.geometry.PointCloud()
             tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
-            visualization.points_visualization_by_vtk([tmp_pcd, pcd], balls, radius=3) #[np.mean(tmp_points, axis=0), best_center])
+            #visualization.points_visualization_by_vtk([tmp_pcd, pcd]) #[np.mean(tmp_points, axis=0), best_center])
             # visualization.viz_matplot(tmp_points)
             
         # print('initial center:%.2fmm,  Chebyshev center:%.2fmm'% (initial_res, max_res))
@@ -493,7 +505,7 @@ def separate_point(points,
     return all_points
 
 
-def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
+def get_effect_points(pcds, stls,threshold=screw_setting.gep_threshold):
     all_points = [0]
     tmp_all_points = []
     for pcd in pcds:
@@ -524,17 +536,18 @@ def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
             if j not in finish_indices:
                 _, indices = trees[j].query(all_points[i], 1, workers=-1)
                 indices = np.array(indices)
-                dist = np.linalg.norm(all_points[i] - all_points[j][indices],
-                                      axis=1)
+                dist = np.linalg.norm(all_points[i] - all_points[j][indices], axis=1)
                 dist_idx = np.argwhere(dist < threshold).flatten()
-                points1 = np.concatenate([points1, all_points[i][dist_idx]],
-                                         axis=0)
-                points2 = np.concatenate(
-                    [points2, all_points[j][indices[dist_idx]]], axis=0)
+                points1 = np.concatenate([points1, all_points[i][dist_idx]], axis=0)
+                points2 = np.concatenate([points2, all_points[j][indices[dist_idx]]], axis=0)
         if points1.shape[0] > 50:
+            pcd_ps = np.concatenate([points, points2], axis=0)
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(pcd_ps)
+            visualization.points_visualization_by_vtk([pcd])
             match_clusters.append([points1, points2])
     refine_cluster = []
-    # matched_pcds = []
+    matched_pcds = []
     for match_cluster in match_clusters:
         points1 = match_cluster[0]
         points2 = match_cluster[1]
@@ -544,25 +557,23 @@ def get_effect_points(pcds, threshold=screw_setting.gep_threshold):
         for points in all_points:
             _, indices = tree.query(points, 1, workers=-1)
             refine_cluster.append([points, points2[indices]])
-            # pcd_ps = np.concatenate([points, points2[indices]], axis=0)
-            # pcd = o3d.geometry.PointCloud()
-            # pcd.points = o3d.utility.Vector3dVector(pcd_ps)
-            # matched_pcds.append(pcd)
+            pcd_ps = np.concatenate([points, points2[indices]], axis=0)
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(pcd_ps)
+            matched_pcds.append(pcd)
         # refine_cluster.append(tmp_cluster)
-    # visualization.points_visualization_by_vtk(matched_pcds)
+    visualization.stl_pcd_visualization_with_path_by_vtk1(stls, matched_pcds)
+    visualization.points_visualization_by_vtk(matched_pcds)
     return refine_cluster
 
 
-def get_cone(dire,
-             angle=screw_setting.cone_angle,
+def get_cone(dire, angle=screw_setting.cone_angle,
              r_resolution=screw_setting.r_res,
              c_resolution=screw_setting.c_res):
     orth_dir = np.array([dire[2], 0, -dire[0]])
     orth_dir = orth_dir / np.linalg.norm(orth_dir)
     radius = np.tan(angle)
-    rot_mtx = scipy.linalg.expm(
-        np.cross(np.eye(3),
-                 dire / scipy.linalg.norm(dire) * 2 * np.pi / c_resolution))
+    rot_mtx = scipy.linalg.expm(np.cross(np.eye(3), dire/scipy.linalg.norm(dire) * 2 * np.pi / c_resolution))
     cone = [dire]
     for i in range(c_resolution):
         orth_dir = np.dot(rot_mtx, orth_dir)
@@ -897,8 +908,7 @@ def isExploreV1(pcds, info, radius=2 * screw_setting.screw_radius, rate=1.2):
     dire4 = dire4 / np.linalg.norm(dire4)
     dires = [dire1, dire2, dire3, dire4]
     test_point1 = cent + length1 * dire
-    diff = all_points - np.expand_dims(test_point1, 0).repeat(
-        all_points.shape[0], axis=0)
+    diff = all_points - np.expand_dims(test_point1, 0).repeat(all_points.shape[0], axis=0)
     diff_norm = np.linalg.norm(diff, axis=1)
     # ball_centers = []
     # cone_pcd = []
@@ -1290,18 +1300,18 @@ def get_optimal_info(path_info,
             # if length1 < 30 and length1/length2 < 0.33:
             #     continue
             continue_ornot = True
-            if min(length1, length2) > min(best_length1, best_length2):
-                continue_ornot = False
-            elif (max(length1, length2) - max(best_length1, best_length2)) / (min(best_length1, best_length2) - min(length1, length2) + 0.01) > 2:
-                continue_ornot = False
-            if length1 >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
-                continue_ornot = False
-            elif com_cp[idx2] > close_length2 and (length2 - best_length2) / (best_length1 - length1 + 0.01) > 0.8:
-                continue_ornot = False
+            # if min(length1, length2) > min(best_length1, best_length2):
+            #     continue_ornot = False
+            # elif (max(length1, length2) - max(best_length1, best_length2)) / (min(best_length1, best_length2) - min(length1, length2) + 0.01) > 2:
+            #     continue_ornot = False
+            # if length1 >= best_length1 and com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
+            #     continue_ornot = False
+            # elif com_cp[idx2] > close_length2 and (length2 - best_length2) / (best_length1 - length1 + 0.01) > 0.8:
+            #     continue_ornot = False
             # t_length1 = length1
             # t_length2 = length2
-            # if 0.8*length2 + 0.2*length1 > 0.8*best_length2 + 0.2*best_length1: # and length1/length2 > 0.2 and length2/length1 > 0.2:
-            #     continue_ornot = False
+            if 0.8*length2 + 0.2*length1 > 0.8*best_length2 + 0.2*best_length1: # and length1/length2 > 0.2 and length2/length1 > 0.2:
+                continue_ornot = False
             if continue_ornot:
                 continue
             best_length1 = length1
@@ -1355,9 +1365,9 @@ def get_optimal_info(path_info,
     return rf_path_info
 
 
-def path_program(frac_pcds, all_pcds, rest_pcds):
+def path_program(frac_pcds, all_pcds, rest_pcds, stls):
     start = time.time()
-    refine_cluster = get_effect_points(frac_pcds)
+    refine_cluster = get_effect_points(frac_pcds, stls)
     path_info = []
     all_points = []
     frac_points = []
@@ -1380,8 +1390,7 @@ def path_program(frac_pcds, all_pcds, rest_pcds):
         # path_dir = path_dir/np.linalg.norm(path_dir)
         # path_dir = get_screw_dir_by_norm2(points1, points2) # there exist some problems
         # path_dir = get_screw_dir_by_ransac(points1, points2)
-        path_center = get_screw_implant_position_by_Chebyshev_center(
-            points1, points2)
+        path_center = get_screw_implant_position_by_Chebyshev_center(points1, points2)
         tmp_p1 = points1[1, :]
         tmp_p2 = points2[1, :]
         id1 = None
@@ -1509,7 +1518,7 @@ def path_program(frac_pcds, all_pcds, rest_pcds):
                         path_info.insert(j, info1)
                         break
     # path_info = add_screw_length(path_info, all_pcds)
-    path_info = refine_path_info(path_info, rest_pcds)
+    path_info = core_software.refine_path_info(path_info, rest_pcds)
     end = time.time()
     print("循环运行时间:%.2f秒" % (end - start))
     return path_info
@@ -1558,8 +1567,7 @@ def refine_path_info(path_info,
     for i in range(len(path_info)):
         # tmp = pca.explained_variance_ratio_
         # tmp = 0
-        dire = np.mean(allPoints[path_info[i][2]], axis=0) - np.mean(
-            allPoints[path_info[i][3]], axis=0)
+        dire = np.mean(allPoints[path_info[i][2]], axis=0) - np.mean(allPoints[path_info[i][3]], axis=0)
         dire = dire / np.linalg.norm(dire)
         rf_path_info[i][0] = dire
         # if np.abs(np.dot(dire, vec.T)) > 0.5 and frac_size[i] > 30000:
@@ -1786,4 +1794,4 @@ def relu_refine_dir_v3(ctbt11,
 
 
 def refine_path_info_v4(path_info, rest_pcds, rest_pcds_for_explore):
-    return get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore)
+    return core_software.get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore)

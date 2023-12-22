@@ -1,0 +1,10 @@
+^E:\CODE\FRACTURE_REDUCTION_PLANNING\PYTHON_VERSION\SCREW_PROGRAM\SRC\CMAKEFILES\E0A8BDBED6EBF3D71B5FAB7F6BAFED4B\GENERATE.STAMP.RULE
+setlocal
+D:\cmake\camke-3.20\bin\cmake.exe -SE:/code/fracture_reduction_planning/python_version/screw_program/src -BE:/code/fracture_reduction_planning/python_version/screw_program/src --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file E:/code/fracture_reduction_planning/python_version/screw_program/src/Segmentation_DP.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

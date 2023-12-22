@@ -61,25 +61,31 @@ def viz_matplot(points):
     plt.show()
 
 
-
 def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_radius, color=screw_setting.color):
     renderer = vtk.vtkRenderer()
     renderer.SetBackground(1, 1, 1)
     for i in range(0, len(PCDs)):
         vtk_points = vtk.vtkPoints()
-        vtk_cells = vtk.vtkCellArray()
         xyz = np.asarray(PCDs[i].points)
         for j in range(0, xyz.shape[0]):
-            vtk_cells.InsertNextCell(1)
-            vtk_cells.InsertCellPoint(
-                vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2]))
+            vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2])
 
         ply = vtk.vtkPolyData()
         ply.SetPoints(vtk_points)
-        ply.SetVerts(vtk_cells)
+        # ply.GetPointData().SetScalars([color[(3 * i) % len(color)],
+        #                               color[(3 * i + 1) % len(color)],
+        #                               color[(3 * i + 2) % len(color)]])
+        
+        sphere_source = vtk.vtkSphereSource()
+        
+        glyph = vtk.vtkGlyph3D()
+        glyph.SetSourceConnection(sphere_source.GetOutputPort())
+        glyph.SetInputData(ply)
+        glyph.ScalingOff()
+        glyph.Update()
 
         ply_mapper = vtk.vtkPolyDataMapper()
-        ply_mapper.SetInputData(ply)
+        ply_mapper.SetInputData(glyph.GetOutput())
         ply_mapper.Update()
 
         ply_actor = vtk.vtkActor()
@@ -91,7 +97,7 @@ def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_r
     if centers is not None:
         for center in centers:
             sph_actor = get_sphere_actor(center, radius, (1, 0, 0))
-            sph_actor.GetProperty().SetOpacity(0.8)
+            sph_actor.GetProperty().SetOpacity(0.4)
             renderer.AddActor(sph_actor)
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
@@ -102,7 +108,6 @@ def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_r
     render_window.Render()
     rw_interactor.Initialize()
     rw_interactor.Start()
-
 
 
 def stl_visualization_by_vtk(result_stls, origin_stls, color=screw_setting.color):
@@ -166,19 +171,26 @@ def stl_pcd_visualization_by_vtk(stls, pcds, color=screw_setting.color):
     pcd_renderer.SetViewport(0.5, 0, 1, 1)
     for i in range(0, len(pcds)):
         vtk_points = vtk.vtkPoints()
-        vtk_cells = vtk.vtkCellArray()
         xyz = np.asarray(pcds[i].points)
         for j in range(0, xyz.shape[0]):
-            vtk_cells.InsertNextCell(1)
-            vtk_cells.InsertCellPoint(
-                vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2]))
+            vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2])
 
         ply = vtk.vtkPolyData()
         ply.SetPoints(vtk_points)
-        ply.SetVerts(vtk_cells)
+        # ply.GetPointData().SetScalars([color[(3 * i) % len(color)],
+        #                               color[(3 * i + 1) % len(color)],
+        #                               color[(3 * i + 2) % len(color)]])
+        
+        sphere_source = vtk.vtkSphereSource()
+        
+        glyph = vtk.vtkGlyph3D()
+        glyph.SetSourceConnection(sphere_source.GetOutputPort())
+        glyph.SetInputData(ply)
+        glyph.ScalingOff()
+        glyph.Update()
 
         ply_mapper = vtk.vtkPolyDataMapper()
-        ply_mapper.SetInputData(ply)
+        ply_mapper.SetInputData(glyph.GetOutput())
         ply_mapper.Update()
 
         ply_actor = vtk.vtkActor()
@@ -219,7 +231,7 @@ def get_screw_line_actor(center, direct, length_rate=screw_setting.line_length_r
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
     actor.GetProperty().SetColor(1, 0, 0)
-    actor.GetProperty().SetLineWidth(0.2)
+    actor.GetProperty().SetLineWidth(0.5)
     return actor
     
     
@@ -354,6 +366,8 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
     stl_renderer = vtk.vtkRenderer()
     stl_renderer.SetViewport(0, 0.5, 0.5, 1)
     stl_renderer.SetBackground(1, 1, 1)
+    pcd_screw_renderer = vtk.vtkRenderer()
+    pcd_screw_renderer.SetViewport(0.5, 0, 1, 0.5)
     for i in range(0, len(stls)):
         stl = stls[i]
         stl_ply_mapper = vtk.vtkPolyDataMapper()
@@ -369,6 +383,7 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
     
     stl_screw_renderer = vtk.vtkRenderer()
     stl_screw_renderer.SetViewport(0, 0, 0.5, 0.5)
+    stl_screw_renderer.SetBackground(1, 1, 1)
     for i in range(0, len(stls)):
         stl = stls[i]
         stl_ply_mapper = vtk.vtkPolyDataMapper()
@@ -380,7 +395,8 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
         stl_ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
                                              color[(3 * i + 1) % len(color)],
                                              color[(3 * i + 2) % len(color)])
-        stl_ply_actor.GetProperty().SetOpacity(0.7)
+        stl_ply_actor.GetProperty().SetOpacity(0.1)
+        pcd_screw_renderer.AddActor(stl_ply_actor)
         stl_screw_renderer.AddActor(stl_ply_actor)
         stl_writer = vtk.vtkSTLWriter()
         stl_writer.SetFileName(save + '/frac%d.stl' % i)
@@ -412,19 +428,26 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
     pcd_renderer.SetBackground(1, 1, 1)
     for i in range(0, len(pcds)):
         vtk_points = vtk.vtkPoints()
-        vtk_cells = vtk.vtkCellArray()
         xyz = np.asarray(pcds[i].points)
         for j in range(0, xyz.shape[0]):
-            vtk_cells.InsertNextCell(1)
-            vtk_cells.InsertCellPoint(
-                vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2]))
+            vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2])
 
         ply = vtk.vtkPolyData()
         ply.SetPoints(vtk_points)
-        ply.SetVerts(vtk_cells)
+        # ply.GetPointData().SetScalars([color[(3 * i) % len(color)],
+        #                               color[(3 * i + 1) % len(color)],
+        #                               color[(3 * i + 2) % len(color)]])
+        
+        sphere_source = vtk.vtkSphereSource()
+        
+        glyph = vtk.vtkGlyph3D()
+        glyph.SetSourceConnection(sphere_source.GetOutputPort())
+        glyph.SetInputData(ply)
+        glyph.ScalingOff()
+        glyph.Update()
 
         ply_mapper = vtk.vtkPolyDataMapper()
-        ply_mapper.SetInputData(ply)
+        ply_mapper.SetInputData(glyph.GetOutput())
         ply_mapper.Update()
 
         ply_actor = vtk.vtkActor()
@@ -433,24 +456,33 @@ def stl_pcd_visualization_with_path_by_vtk(stls, pcds, path_info, color=screw_se
                                          color[(3 * i + 1) % len(color)],
                                          color[(3 * i + 2) % len(color)])
         pcd_renderer.AddActor(ply_actor)
+        pcd_screw_renderer.AddActor(ply_actor)
         
-    pcd_screw_renderer = vtk.vtkRenderer()
-    pcd_screw_renderer.SetViewport(0.5, 0, 1, 0.5)
+    # pcd_screw_renderer = vtk.vtkRenderer()
+    # pcd_screw_renderer.SetViewport(0.5, 0, 1, 0.5)
+    pcd_screw_renderer.SetBackground(1, 1, 1)
     for i in range(0, len(pcds)):
         vtk_points = vtk.vtkPoints()
-        vtk_cells = vtk.vtkCellArray()
         xyz = np.asarray(pcds[i].points)
         for j in range(0, xyz.shape[0]):
-            vtk_cells.InsertNextCell(1)
-            vtk_cells.InsertCellPoint(
-                vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2]))
+            vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2])
 
         ply = vtk.vtkPolyData()
         ply.SetPoints(vtk_points)
-        ply.SetVerts(vtk_cells)
+        # ply.GetPointData().SetScalars([color[(3 * i) % len(color)],
+        #                               color[(3 * i + 1) % len(color)],
+        #                               color[(3 * i + 2) % len(color)]])
+        
+        sphere_source = vtk.vtkSphereSource()
+        
+        glyph = vtk.vtkGlyph3D()
+        glyph.SetSourceConnection(sphere_source.GetOutputPort())
+        glyph.SetInputData(ply)
+        glyph.ScalingOff()
+        glyph.Update()
 
         ply_mapper = vtk.vtkPolyDataMapper()
-        ply_mapper.SetInputData(ply)
+        ply_mapper.SetInputData(glyph.GetOutput())
         ply_mapper.Update()
 
         ply_actor = vtk.vtkActor()
@@ -711,6 +743,125 @@ def screws_vis(infos):
         # renderer.AddActor(get_screw_line_actor(info[1], info[0]))
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
+    rw_style = vtk.vtkInteractorStyleTrackballCamera()
+    rw_interactor = vtk.vtkRenderWindowInteractor()
+    rw_interactor.SetRenderWindow(render_window)
+    rw_interactor.SetInteractorStyle(rw_style)
+    render_window.Render()
+    rw_interactor.Initialize()
+    rw_interactor.Start()
+    
+
+def stl_pcd_visualization_with_path_by_vtk1(stls, pcds, color=screw_setting.color):
+    stl_renderer = vtk.vtkRenderer()
+    stl_renderer.SetViewport(0, 0.5, 0.5, 1)
+    stl_renderer.SetBackground(1, 1, 1)
+    pcd_screw_renderer = vtk.vtkRenderer()
+    pcd_screw_renderer.SetViewport(0.5, 0, 1, 0.5)
+    for i in range(0, len(stls)):
+        stl = stls[i]
+        stl_ply_mapper = vtk.vtkPolyDataMapper()
+        stl_ply_mapper.SetInputData(stl)
+        stl_ply_mapper.Update()
+
+        stl_ply_actor = vtk.vtkActor()
+        stl_ply_actor.SetMapper(stl_ply_mapper)
+        stl_ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
+                                             color[(3 * i + 1) % len(color)],
+                                             color[(3 * i + 2) % len(color)])
+        stl_renderer.AddActor(stl_ply_actor)
+    
+    stl_screw_renderer = vtk.vtkRenderer()
+    stl_screw_renderer.SetViewport(0, 0, 0.5, 0.5)
+    stl_screw_renderer.SetBackground(1, 1, 1)
+    for i in range(0, len(stls)):
+        stl = stls[i]
+        stl_ply_mapper = vtk.vtkPolyDataMapper()
+        stl_ply_mapper.SetInputData(stl)
+        stl_ply_mapper.Update()
+
+        stl_ply_actor = vtk.vtkActor()
+        stl_ply_actor.SetMapper(stl_ply_mapper)
+        stl_ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
+                                             color[(3 * i + 1) % len(color)],
+                                             color[(3 * i + 2) % len(color)])
+        stl_ply_actor.GetProperty().SetOpacity(0.1)
+        pcd_screw_renderer.AddActor(stl_ply_actor)
+        stl_screw_renderer.AddActor(stl_ply_actor)
+
+    pcd_renderer = vtk.vtkRenderer()
+    pcd_renderer.SetViewport(0.5, 0.5, 1, 1)
+    pcd_renderer.SetBackground(1, 1, 1)
+    for i in range(0, len(pcds)):
+        vtk_points = vtk.vtkPoints()
+        xyz = np.asarray(pcds[i].points)
+        for j in range(0, xyz.shape[0]):
+            vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2])
+
+        ply = vtk.vtkPolyData()
+        ply.SetPoints(vtk_points)
+        # ply.GetPointData().SetScalars([color[(3 * i) % len(color)],
+        #                               color[(3 * i + 1) % len(color)],
+        #                               color[(3 * i + 2) % len(color)]])
+        
+        sphere_source = vtk.vtkSphereSource()
+        
+        glyph = vtk.vtkGlyph3D()
+        glyph.SetSourceConnection(sphere_source.GetOutputPort())
+        glyph.SetInputData(ply)
+        glyph.ScalingOff()
+        glyph.Update()
+
+        ply_mapper = vtk.vtkPolyDataMapper()
+        ply_mapper.SetInputData(glyph.GetOutput())
+        ply_mapper.Update()
+
+        ply_actor = vtk.vtkActor()
+        ply_actor.SetMapper(ply_mapper)
+        ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
+                                         color[(3 * i + 1) % len(color)],
+                                         color[(3 * i + 2) % len(color)])
+        pcd_renderer.AddActor(ply_actor)
+        pcd_screw_renderer.AddActor(ply_actor)
+        
+    # pcd_screw_renderer = vtk.vtkRenderer()
+    # pcd_screw_renderer.SetViewport(0.5, 0, 1, 0.5)
+    pcd_screw_renderer.SetBackground(1, 1, 1)
+    for i in range(0, len(pcds)):
+        vtk_points = vtk.vtkPoints()
+        for j in range(0, xyz.shape[0]):
+            vtk_points.InsertNextPoint(xyz[j][0], xyz[j][1], xyz[j][2])
+
+        ply = vtk.vtkPolyData()
+        ply.SetPoints(vtk_points)
+        # ply.GetPointData().SetScalars([color[(3 * i) % len(color)],
+        #                               color[(3 * i + 1) % len(color)],
+        #                               color[(3 * i + 2) % len(color)]])
+        
+        sphere_source = vtk.vtkSphereSource()
+        
+        glyph = vtk.vtkGlyph3D()
+        glyph.SetSourceConnection(sphere_source.GetOutputPort())
+        glyph.SetInputData(ply)
+        glyph.ScalingOff()
+        glyph.Update()
+
+        ply_mapper = vtk.vtkPolyDataMapper()
+        ply_mapper.SetInputData(glyph.GetOutput())
+        ply_mapper.Update()
+
+        ply_actor = vtk.vtkActor()
+        ply_actor.SetMapper(ply_mapper)
+        ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
+                                         color[(3 * i + 1) % len(color)],
+                                         color[(3 * i + 2) % len(color)])
+        pcd_screw_renderer.AddActor(ply_actor)
+    
+    render_window = vtk.vtkRenderWindow()
+    render_window.AddRenderer(stl_renderer)
+    render_window.AddRenderer(pcd_renderer)
+    render_window.AddRenderer(stl_screw_renderer)
+    render_window.AddRenderer(pcd_screw_renderer)
     rw_style = vtk.vtkInteractorStyleTrackballCamera()
     rw_interactor = vtk.vtkRenderWindowInteractor()
     rw_interactor.SetRenderWindow(render_window)

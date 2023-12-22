@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="E:\code\fracture_reduction_planning\python_version\screw_program\src\Segmentation_DP_autogen\mocs_compilation_Debug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\code\fracture_reduction_planning\python_version\screw_program\src\Mainwindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\code\fracture_reduction_planning\python_version\screw_program\src\Segmentation_DP_autogen\mocs_compilation_Release.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\code\fracture_reduction_planning\python_version\screw_program\src\Segmentation_DP_autogen\mocs_compilation_MinSizeRel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\code\fracture_reduction_planning\python_version\screw_program\src\Segmentation_DP_autogen\mocs_compilation_RelWithDebInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="E:\code\fracture_reduction_planning\python_version\screw_program\src\Mainwindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="E:\code\fracture_reduction_planning\python_version\screw_program\src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{4B8DE410-C6B3-3669-8B5F-CD3A4597A1CB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{F417B7A4-82F4-3638-949F-071E4241188A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

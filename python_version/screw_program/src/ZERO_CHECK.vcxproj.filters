@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="E:\code\fracture_reduction_planning\python_version\screw_program\src\CMakeFiles\e0a8bdbed6ebf3d71b5fab7f6bafed4b\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{7E7B99B2-0A43-37DB-8DF1-DE314D767217}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -357,7 +357,7 @@ def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius, rate=1.2):
     return False
 
 
-def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_setting.screw_radius, dist_eps=screw_setting.dist_eps):
+def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, di_center=None, eps=screw_setting.screw_radius, dist_eps=screw_setting.dist_eps):
     rf_path_info = []
     rest_points = []
     restPoints = np.empty((0, 3))
@@ -366,6 +366,8 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         restPoints = np.concatenate([restPoints, points], axis=0)
         rest_points.append(points)
     allCenter = np.mean(restPoints, axis=0)
+    if di_center is not None:
+        allCenter = np.array(di_center)
     for i in range(len(path_info)):
         start = time.time()
         info = path_info[i]
@@ -375,6 +377,7 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
         id2 = info[3]
         cone = get_cone(dire)
         best_dir = dire
+        best_score = 0
         best_length1 = 0
         best_length2 = 0
         close_length2 = 0
@@ -517,16 +520,23 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, eps=screw_sett
                     com_cp[idx2] = new_length2
                     com_fp[idx2] = new_length2
                     ret2, _ = isInterference([n_dir, cent, id1, id2, new_length1, new_length2], interference_info)
-            length1 = new_length1
+            length1 = min(new_length1, 60)
             length2 = new_length2 
             if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or (min(length1, length2)/max(length1, length2) < 0.33 and min(length1, length2) < 20):
                 continue
             continue_ornot = True
+            tmp_score = 0
             if com_cp[idx1] + com_cp[idx2] > best_length1 + close_length2:
                 continue_ornot = False
+                tmp_score = com_cp[idx1] + com_cp[idx2]
+            if com_cp[idx1] + com_cp[idx2] > 100:
+                tmp_score = 100 + np.abs(np.dot(dire, n_dir))
+            if tmp_score < best_score:
+                continue_ornot = True
             if not continue_ornot:
                 best_length1 = length1
                 best_length2 = length2
+                best_score = tmp_score
                 close_length2 = com_cp[idx2]
                 best_dir = n_dir
         end = time.time()
@@ -658,6 +668,7 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
         allPoints.append(points)
     tree = spatial.KDTree(all_points)
     centers = []
+    ctbt = []
     for i in range(len(path_info)):
         info = path_info[i]
         point = info[1]
@@ -676,9 +687,10 @@ def refine_path_info(path_info, pcds, radius=screw_setting.path_refine_radius, l
             vec = -vec
         rf_direc = vec  #path_info[i][0]
         rf_path_info.append([rf_direc, point, id1, id2, 0, 0])
+        ctbt.append(pca.explained_variance_ratio_[0])
     for i in range(len(path_info)):
         dire = np.mean(allPoints[path_info[i][2]], axis=0) - np.mean(allPoints[path_info[i][3]], axis=0)
         dire = dire/np.linalg.norm(dire)
-        if np.abs(np.dot(dire, vec.T)) < 0.8:
+        if np.abs(np.dot(dire, vec.T)) < 0.8 and ctbt[i] < 0.6:
             rf_path_info[i][0] = dire
     return rf_path_info

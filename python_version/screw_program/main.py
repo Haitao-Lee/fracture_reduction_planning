@@ -47,11 +47,11 @@ def screw_program(args):
     rest_pcds = data_preprocess.get_rest_pcds(all_pcds, frac_pcds)
     rest_pcds = data_preprocess.downSample(rest_pcds)
     rest_pcds_for_explore = data_preprocess.downSample(rest_pcds, voxel_size=2*screw_setting.voxel_size)
-
+    # visualization.stl_pcd_visualization_with_path_by_vtk1(stls, frac_pcds)
     
     # visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
     
-    path_info = core.path_program(frac_pcds, all_pcds, rest_pcds)
+    path_info = core.path_program(frac_pcds, all_pcds, rest_pcds, stls)
     # rf_path_info_v1 = path_program.refine_path_info_v1(path_info, all_pcds)
     
     # rf_path_info_v2 = path_program.refine_path_info_v2(path_info, all_pcds)
@@ -70,6 +70,7 @@ def screw_program(args):
     
     
 if __name__ == '__main__':
+    print("start")
     parser = argparse.ArgumentParser()
     parser.add_argument("--pcd_dir",
                         default=screw_setting.pcd_dir,
@@ -141,5 +142,7 @@ if __name__ == '__main__':
                         default=screw_setting.length_eps,
                         type=float)
     args = parser.parse_args()
+    print("initialize")
     initialize(args)
+    print("screw program")
     screw_program(args)

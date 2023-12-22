@@ -1,0 +1,9 @@
+﻿  Automatic MOC for target Segmentation_DP
+EXEC : AutoGen warning : "SRC:/Mainwindow.h" is empty.
+  
+  Building Custom Rule E:/code/fracture_reduction_planning/python_version/screw_program/src/CMakeLists.txt
+  mocs_compilation_Debug.cpp
+  Mainwindow.cpp
+  The contents of <filesystem> are available only with C++17 or later.
+  正在生成代码...
+  Segmentation_DP.vcxproj -> E:\code\fracture_reduction_planning\python_version\screw_program\src\Debug\Segmentation_DP.exe

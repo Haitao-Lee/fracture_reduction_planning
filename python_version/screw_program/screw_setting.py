@@ -43,10 +43,10 @@ std_rt = 2
 svm_threshold = 2
 
 # threshold in get_effect_pcd
-gep_threshold = 3
+gep_threshold = 6
 
 # threhold in separate_point
-sp_threshold = 6
+sp_threshold = 10
 
 # radius in separate_point
 sp_radius = 60
