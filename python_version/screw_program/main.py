@@ -7,6 +7,8 @@ import visualization
 import screw_setting
 import core
 import data_preprocess
+from sklearn.decomposition import PCA
+import core_software
 
 
 def initialize(args):
@@ -51,7 +53,30 @@ def screw_program(args):
     
     # visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
     
-    path_info = core.path_program(frac_pcds, all_pcds, rest_pcds, stls)
+    path_info = core_software.initial_program(frac_pcds, all_pcds, rest_pcds)
+    
+    
+    # restPoints = np.empty((0, 3))
+    # for pcd in rest_pcds:
+    #     points = np.asarray(pcd.points)
+    #     restPoints = np.concatenate([restPoints, points], axis=0)
+    # allCenter = np.mean(restPoints, axis=0)
+    # pca = PCA()
+    # pca.fit(restPoints)
+    # vec0 = np.array(pca.components_[0, :])
+    # vec0 = vec0/np.linalg.norm(vec0)
+    # vec1 = np.array(pca.components_[1, :])
+    # vec1 = vec1/np.linalg.norm(vec1)
+    # vec2 = np.array(pca.components_[2, :])
+    # vec2 = vec2/np.linalg.norm(vec2)
+    # vec1 = np.cross(vec0, vec2)
+    # allCenter = allCenter  - vec0*60 + vec1*80  - vec2*20 
+    # test_info = []
+    # for i in range(3):
+    #     test_info.append([pca.components_[i, :], allCenter, 0, 0, 20*(i+1), 20*(i+1)])
+    # visualization.best_result_visualization(stls, test_info, args.color)
+    
+    
     # rf_path_info_v1 = path_program.refine_path_info_v1(path_info, all_pcds)
     
     # rf_path_info_v2 = path_program.refine_path_info_v2(path_info, all_pcds)

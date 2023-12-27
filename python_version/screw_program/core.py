@@ -544,7 +544,7 @@ def get_effect_points(pcds, stls,threshold=screw_setting.gep_threshold):
             pcd_ps = np.concatenate([points, points2], axis=0)
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(pcd_ps)
-            visualization.points_visualization_by_vtk([pcd])
+            # visualization.points_visualization_by_vtk([pcd])
             match_clusters.append([points1, points2])
     refine_cluster = []
     matched_pcds = []
@@ -562,8 +562,8 @@ def get_effect_points(pcds, stls,threshold=screw_setting.gep_threshold):
             pcd.points = o3d.utility.Vector3dVector(pcd_ps)
             matched_pcds.append(pcd)
         # refine_cluster.append(tmp_cluster)
-    visualization.stl_pcd_visualization_with_path_by_vtk1(stls, matched_pcds)
-    visualization.points_visualization_by_vtk(matched_pcds)
+    # visualization.stl_pcd_visualization_with_path_by_vtk1(stls, matched_pcds)
+    # visualization.points_visualization_by_vtk(matched_pcds)
     return refine_cluster
 
 

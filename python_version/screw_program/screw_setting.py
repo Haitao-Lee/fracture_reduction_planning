@@ -81,7 +81,7 @@ angle_eps = 5
 dist_eps = 4
 
 # cone angle in get_cone
-cone_angle = np.pi/6
+cone_angle = np.pi/3
 
 # radius resolution in get_cone
 r_res = 15
