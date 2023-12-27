@@ -659,8 +659,8 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, di_center=None
             if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps:
                 continue
             continue_ornot = True
-            tmp_score = com_cp[idx1] + com_cp[idx2]
-            if com_cp[idx1] + com_cp[idx2] > 100:
+            tmp_score = length1  + length2
+            if length1 + length2 > 100:
                 tmp_score = 100 + np.abs(np.dot(vec1, n_dir))
             if tmp_score > best_score:
                 continue_ornot = False
