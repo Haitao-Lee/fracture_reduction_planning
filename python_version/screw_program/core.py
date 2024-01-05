@@ -64,6 +64,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
     max_val = dsp_dsbt[np.argmax(dsp_dsbt)]
     res = max_val - min_val
     s_r = get_screw_radius()
+    length = 1.5
     initial_center = np.mean(all_points, axis=0)
     tree = spatial.KDTree(all_points)
     # plane_info, _, _ = geometry.ransac_planefit(all_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
@@ -145,7 +146,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
                 np.where((dsp_dsbt > tmp_position - 6 * s_r)
                          & (dsp_dsbt < tmp_position + 6 * s_r))).flatten()
             if indices.shape[0] <= 60:
-                tmp_position = tmp_position + s_r
+                tmp_position = tmp_position + length
                 continue
             tmp_points = all_points[indices]
             plane_info, _, _ = geometry.ransac_planefit(tmp_points, ransac_n=3, max_dst=screw_setting.ransac_eps)
@@ -237,7 +238,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
             #     tmp_res = min(tmp_res1, tmp_res2)
             # elif min(tmp_res1, tmp_res2) >= 12*s_r:
             #     tmp_res = max(tmp_res1, tmp_res2)
-            tmp_position = tmp_position + s_r
+            tmp_position = tmp_position + length
             if tmp_res > max_res or (tmp_res == max_res and indices.shape[0] > last_num):
                 max_res = tmp_res
                 last_num = indices.shape[0]
@@ -252,14 +253,14 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
                 new_indices = np.concatenate([new_indices, np.array(tmp_indices[k]).reshape(-1, 1)], axis=0)
             new_indices = new_indices.astype(np.int).flatten()
             tmp_all_points = all_points.copy()
-            tmp_all_points = np.delete(tmp_all_points, new_indices, axis=0)
+            # tmp_all_points = np.delete(tmp_all_points, new_indices, axis=0)
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(tmp_all_points)
             tmp_pcd = o3d.geometry.PointCloud()
             tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
             #visualization.points_visualization_by_vtk([tmp_pcd, pcd]) #[np.mean(tmp_points, axis=0), best_center])
-            # visualization.viz_matplot(tmp_points)
-            
+            #visualization.viz_matplot(tmp_points)
+        visualization.points_visualization_by_vtk([pcd], [best_center])
         # print('initial center:%.2fmm,  Chebyshev center:%.2fmm'% (initial_res, max_res))
         return best_center
  
@@ -1541,6 +1542,7 @@ def refine_path_info(path_info,
     for i in range(len(path_info)):
         info = path_info[i]
         point = info[1]
+        # if i < 2:
         centers.append(point)
         direc = info[0]
         id1 = info[2]
@@ -1564,6 +1566,17 @@ def refine_path_info(path_info,
         rf_path_info.append([rf_direc, point, id1, id2, 0, 0])
         frac_size.append(indices.shape[0])
     # rf_path_info = add_screw_length(rf_path_info, pcds)
+    for i in range(3):
+        c_t = centers[0] + i/3*(centers[1]-centers[0])
+        centers.append(c_t)
+    pcas = []
+    for center in centers:
+        indices = tree.query_ball_point(center, radius, workers=-1)
+        indices = np.array(indices).flatten()
+        points = all_points[indices]
+        pca = PCA()
+        pca.fit(points)
+        pcas.append(pca.explained_variance_ratio_[0])
     for i in range(len(path_info)):
         # tmp = pca.explained_variance_ratio_
         # tmp = 0
@@ -1574,7 +1587,8 @@ def refine_path_info(path_info,
         #     rf_path_info[i][0] = dire
         #     rf_path_info[i][4] = 0
         #     rf_path_info[i][5] = 0
-    # visualization.points_visualization_by_vtk(pcds, centers, radius)
+    print("pca:", pcas)
+    visualization.points_visualization_by_vtk(pcds, centers, radius)
     return rf_path_info
 
 
@@ -1793,5 +1807,5 @@ def relu_refine_dir_v3(ctbt11,
                                         vec11 / ctbt_rate21 + direc)
 
 
-def refine_path_info_v4(path_info, rest_pcds, rest_pcds_for_explore):
-    return core_software.get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore)
+def refine_path_info_v4(stls, path_info, rest_pcds, rest_pcds_for_explore):
+    return core_software.get_optimal_info(stls, path_info, rest_pcds, rest_pcds_for_explore)

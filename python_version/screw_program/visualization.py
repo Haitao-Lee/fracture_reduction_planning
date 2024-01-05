@@ -93,6 +93,7 @@ def points_visualization_by_vtk(PCDs, centers=None, radius=screw_setting.screw_r
         ply_actor.GetProperty().SetColor(color[(3 * i) % len(color)],
                                          color[(3 * i + 1) % len(color)],
                                          color[(3 * i + 2) % len(color)])
+        ply_actor.GetProperty().SetOpacity(0.8)
         renderer.AddActor(ply_actor)
     if centers is not None:
         for center in centers:

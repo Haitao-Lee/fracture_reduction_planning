@@ -55,6 +55,7 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
         max_res = 0
         best_center = initial_center
         last_num = 0
+        # start = time.time()
         while tmp_position <= max_val - max(6 * s_r, 0.2 * res):
             indices = np.array(
                 np.where((dsp_dsbt > tmp_position - 6 * s_r)
@@ -134,6 +135,9 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
                 balls.append(center + tmp_res * normals[i])
                 balls.append(center - tmp_res * normals[i])
             tmp_position = tmp_position + s_r
+            if tmp_res >= 12 * s_r - 1e-3:
+                best_center = np.mean(tmp_points, axis=0)
+                return best_center
             if tmp_res > max_res or (tmp_res == max_res and indices.shape[0] > last_num):
                 max_res = tmp_res
                 last_num = indices.shape[0]
@@ -148,7 +152,9 @@ def get_screw_implant_position_by_Chebyshev_center(points1, points2):
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(tmp_all_points)
             tmp_pcd = o3d.geometry.PointCloud()
-            tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)
+            tmp_pcd.points = o3d.utility.Vector3dVector(tmp_points)   
+        # end = time.time()   
+        # print('耗时:%.2f秒'%(end -start))
         return best_center
 
 
@@ -477,7 +483,7 @@ def isExploreV2(pcds, info, radius=2*screw_setting.screw_radius, rate=1.2):
     return False
 
 
-def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, di_center=None, eps=screw_setting.screw_radius, dist_eps=screw_setting.dist_eps):
+def get_optimal_info(stls, path_info, rest_pcds, rest_pcds_for_explore, di_center=None, eps=screw_setting.screw_radius, dist_eps=screw_setting.dist_eps):
     rf_path_info = []
     rest_points = []
     restPoints = np.empty((0, 3))
@@ -490,12 +496,16 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, di_center=None
     pca.fit(restPoints)
     vec0 = np.array(pca.components_[0, :])
     vec0 = vec0/np.linalg.norm(vec0)
-    # vec1 = np.array(pca.components_[1, :])
-    # vec1 = vec1/np.linalg.norm(vec1)
+    vec1 = np.array(pca.components_[1, :])
+    vec1 = vec1/np.linalg.norm(vec1)
     vec2 = np.array(pca.components_[2, :])
     vec2 = vec2/np.linalg.norm(vec2)
-    vec1 = np.cross(vec0, vec2)
-    allCenter = allCenter  - vec0*60 + vec1*80  - vec2*20
+    dsp_dsbt = np.dot(restPoints, vec2.T)
+    tip_point = restPoints[np.argmax(dsp_dsbt)]
+    #  visualization.points_visualization_by_vtk(rest_pcds, [tip_point], radius=10)
+    if np.dot(tip_point - allCenter, vec1) > 0:
+        vec1 = -vec1
+    allCenter = allCenter  - vec0*40 + vec1*80  - vec2*20
     test_info = []
     if di_center is not None:
         allCenter = np.array(di_center)
@@ -528,15 +538,33 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, di_center=None
             cp_list = []
             ps = None
             cone_pcd = []
+            pcd_ps = []
+            whole_ps = np.empty((0,3))
             for y in y_uniq:
                 idx = np.argwhere(y_pred == y).flatten()
                 ps = np.array(tmp_points[idx])
+                pcd_ps.append(ps)
+                whole_ps = np.concatenate([whole_ps, ps], axis=0)
                 dist = np.dot(ps, n_dir.T)
                 cp_list.append(ps[np.argmin(dist).flatten()[0]])
                 fp_list.append(ps[np.argmax(dist).flatten()[0]])
             fp_list = np.array(fp_list)
             cp_list = np.array(cp_list)
             ori_cent = np.expand_dims(cent, 0).repeat(fp_list.shape[0], axis=0)
+            
+            # whole_pcd = o3d.geometry.PointCloud()
+            # whole_pcd.points = o3d.utility.Vector3dVector(whole_ps)
+
+            # pcds = []
+            # for ps in pcd_ps:
+            #     pcd = o3d.geometry.PointCloud()
+            #     pcd.points = o3d.utility.Vector3dVector(ps)
+            #     pcds.append(pcd)
+            # visualization.stl_pcd_visualization_with_path_by_vtk(stls, [whole_pcd], [])
+            # visualization.stl_pcd_visualization_with_path_by_vtk(stls, pcds, [])
+            # visualization.points_visualization_by_vtk(pcds)
+            
+            
             dir_fp = fp_list - ori_cent
             dir_cp = cp_list - ori_cent
             com_fp = np.linalg.norm(dir_fp, axis=1)
@@ -656,12 +684,12 @@ def get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, di_center=None
             if length2/(length1 + 1e-4) <= 0.2:
                 length1 = 5*length2
                 com_cp[idx1] = 5*length2  
-            if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps:
+            if np.abs(length1) + np.abs(length2) < 8*dist_eps or min(length1, length2) < 3*dist_eps or length1/(length2+1e-4)<0.33:
                 continue
             continue_ornot = True
             tmp_score = length1  + length2
             if length1 + length2 > 100:
-                tmp_score = 100 + np.abs(np.dot(vec1, n_dir))
+                tmp_score = 100 + np.abs(np.dot(vec1-0.3*vec2, n_dir))
             if tmp_score > best_score:
                 continue_ornot = False
             if not continue_ornot:
@@ -700,6 +728,13 @@ def initial_program(frac_pcds, all_pcds, rest_pcds):
         points2 = points[1]
         path_dir = get_screw_dir_by_SVM(points1, points2)
         path_center = get_screw_implant_position_by_Chebyshev_center(points1, points2)
+        repeat = False
+        for tmp_info in path_info:
+            tmp_cent = tmp_info[1]
+            if np.linalg.norm(path_center - tmp_cent) < 10:
+                repeat = True
+        if repeat:
+            continue
         tmp_p1 = points1[1, :]
         tmp_p2 = points2[1, :]
         id1 = None
@@ -784,7 +819,7 @@ def initial_program(frac_pcds, all_pcds, rest_pcds):
                             j = j + 1
                             path_info.insert(j, info2)
                             break
-    path_info = refine_path_info(path_info, rest_pcds)
+    path_info = refine_path_info(path_info, rest_pcds)#refine_path_info(path_info, rest_pcds)
     end = time.time()
     print("循环运行时间:%.2f秒"%(end-start))
     return path_info

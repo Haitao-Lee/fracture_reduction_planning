@@ -82,51 +82,70 @@ def pcds_normals_outside(pcds):
     # visualization.points_visualization_by_vtk(new_pcds)
     return new_pcds
 
-        
-def get_rest_pcds(all_pcds, frac_pcds, radius=screw_setting.screw_radius - 0.5):
+def fromAllPCDs2FracPCDs(all_pcds, dist_threshold=4):
     all_points = []
-    frac_points = []
+    frac_pcds = []
     trees = []
-    rest_points = []
-    for frac_pcd in frac_pcds:
-        frac_points.append(np.asarray(frac_pcd.points))
     for all_pcd in all_pcds:
         all_points.append(np.array(all_pcd.points))
         trees.append(spatial.KDTree(np.array(all_pcd.points)))
-        rest_points.append(0)
-    for i in range(len(frac_points)): #tqdm(range(len(frac_points)), desc="\033[31mGenerating effect point clouds:\033[0m",):
-        frac_ps = frac_points[i]
-        # _, frac_ps, _ = geometry.ransac_planefit(frac_ps, ransac_n=3, max_dst=screw_setting.ransac_eps/10)
-        index = None
-        min_dist = 1000
-        indices = np.empty((0, 1))
+    # finish_indices=[]
+    for i in range(len(all_points)):
+        # finish_indices.append(i)
+        # points1 = np.empty((0, 3))
+        # points2 = np.empty((0, 3))
         for j in range(len(all_points)):
-            all_ps = all_points[j]
-            _, tmp_indices = trees[j].query(frac_ps, 1, workers=-1)
-            tmp_indices = np.array(tmp_indices).flatten()
-            dist = np.mean(np.linalg.norm(frac_ps - all_ps[tmp_indices], axis=1))
-            if dist < min_dist:
-                index = j
-                min_dist = dist
-                # indices = tmp_indices
-        tmp_idx = trees[index].query_ball_point(frac_ps, radius, workers=-1)
-        for k in range(len(tmp_idx)):
-            indices = np.concatenate([indices, np.array(tmp_idx[k]).reshape(-1, 1)], axis=0)
-        indices = indices.astype(np.int).flatten()
-        mask = np.ones(all_points[index].shape, dtype=bool)
-        mask[indices, :] = False
-        rest_points[index] = all_points[index][mask].reshape(-1, 3)
-        # pcd = o3d.geometry.PointCloud()
-        # pcd.points = o3d.utility.Vector3dVector(rest_points[index])
-        # pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
-        # visualization.points_visualization_by_vtk([pcd])
+            if j != i:
+                indices = trees[j].query_ball_point(all_points[i], dist_threshold, workers=-1)
+                indices = np.array(indices).flatten()
+                eff_idx = []
+                for index in indices:
+                    if len(index) > 0:
+                        eff_idx = eff_idx + index
+                eff_idx = np.unique(np.array(eff_idx)).astype(int)
+                frac_point1 = all_points[j][eff_idx]
+                # _, indices = trees[j].query(all_points[i], 1, workers=-1)
+                # indices = np.array(indices)
+                # dist = np.linalg.norm(all_points[i] - all_points[j][indices], axis=1)
+                # dist_idx = np.argwhere(dist < dist_threshold).flatten()
+                # frac_point1 = np.concatenate([points1, all_points[i][dist_idx]], axis=0)
+                # frac_point2 = np.concatenate([points2, all_points[j][indices[dist_idx]]], axis=0)    
+                if frac_point1.shape[0] > 50:# + frac_point2.shape[0]> 100:
+                    pcd = o3d.geometry.PointCloud()
+                    pcd.points = o3d.utility.Vector3dVector(frac_point1)
+                    frac_pcds.append(pcd)    
+                    # pcd = o3d.geometry.PointCloud()
+                    # pcd.points = o3d.utility.Vector3dVector(frac_point2)
+                    # frac_pcds.append(pcd)     
+    return frac_pcds
+
+
+def get_rest_pcds(all_pcds, frac_pcds, radius=0.5*screw_setting.screw_radius):
+    frac_points = np.empty((0,3))
+    trees = []
+    rest_points = []
+    for frac_pcd in frac_pcds:
+        frac_points = np.concatenate([frac_points, frac_pcd.points], axis=0)
+    for all_pcd in all_pcds:
+        trees.append(0)
+        rest_points.append(np.array(all_pcd.points))
+    indices = np.empty((0, 1))
+    for j in range(len(rest_points)):
+        trees[j] = spatial.KDTree(np.array(rest_points[j]))
+        all_ps = rest_points[j]
+        _, tmp_indices = trees[j].query(frac_points, 1, workers=-1)
+        tmp_indices = np.array(tmp_indices).flatten()
+        dist = np.linalg.norm(frac_points - all_ps[tmp_indices], axis=1)
+        indices = np.argwhere(dist < radius).flatten()
+        mask = np.ones(rest_points[j].shape, dtype=bool)
+        mask[tmp_indices[indices], :] = False
+        rest_points[j] = rest_points[j][mask].reshape(-1, 3)
     rest_pcds = []
     for i in range(len(rest_points)):
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(rest_points[i])
-        # pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
         rest_pcds.append(pcd)
-    # visualization.points_visualization_by_vtk(rest_pcds)
+        # visualization.points_visualization_by_vtk(rest_pcds)
     return rest_pcds
 
     

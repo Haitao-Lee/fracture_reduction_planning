@@ -43,14 +43,19 @@ def screw_program(args):
     # mtx_filenames = data_input.get_filenames(args.mtx_dir, ".npy")
     stls = data_input.getSTLs(stl_filenames)
     all_pcds = data_input.getPCDfromSTL(stl_filenames)
+    all_pcds = data_preprocess.downSample(all_pcds, voxel_size=1.5*screw_setting.voxel_size)
+    # all_pcds = data_preprocess.downSample(all_pcds, voxel_size=screw_setting.voxel_size)
+    # visualization.points_visualization_by_vtk(all_pcds)
+    frac_pcds = data_preprocess.fromAllPCDs2FracPCDs(all_pcds)
+    # visualization.stl_pcd_visualization_with_path_by_vtk1(stls, frac_pcds)
     # all_pcds = data_prepprocess.remove_outliers(all_pcds)
     # all_pcds = data_prepprocess.pcds_normals_outside(all_pcds)
-    frac_pcds = data_input.getPCDs(pcd_filenames)
+    # frac_pcds = data_input.getPCDs(pcd_filenames)
     rest_pcds = data_preprocess.get_rest_pcds(all_pcds, frac_pcds)
     rest_pcds = data_preprocess.downSample(rest_pcds)
     rest_pcds_for_explore = data_preprocess.downSample(rest_pcds, voxel_size=2*screw_setting.voxel_size)
-    # visualization.stl_pcd_visualization_with_path_by_vtk1(stls, frac_pcds)
-    
+    visualization.stl_pcd_visualization_with_path_by_vtk1(stls, frac_pcds)
+    # visualization.points_visualization_by_vtk(rest_pcds)
     # visualization.stl_pcd_visualization_by_vtk(stls, all_pcds, args.color)
     
     path_info = core_software.initial_program(frac_pcds, all_pcds, rest_pcds)
@@ -69,11 +74,16 @@ def screw_program(args):
     # vec1 = vec1/np.linalg.norm(vec1)
     # vec2 = np.array(pca.components_[2, :])
     # vec2 = vec2/np.linalg.norm(vec2)
-    # vec1 = np.cross(vec0, vec2)
-    # allCenter = allCenter  - vec0*60 + vec1*80  - vec2*20 
+    # dsp_dsbt = np.dot(restPoints, vec2.T)
+    # tip_point = restPoints[np.argmax(dsp_dsbt)]
+    # #  visualization.points_visualization_by_vtk(rest_pcds, [tip_point], radius=10)
+    # if np.dot(tip_point - allCenter, vec1) > 0:
+    #     vec1 = -vec1
+    # allCenter = allCenter  - vec0*40 + vec1*80  - vec2*20 
+    # vecs = [vec0, vec1, vec2]
     # test_info = []
     # for i in range(3):
-    #     test_info.append([pca.components_[i, :], allCenter, 0, 0, 20*(i+1), 20*(i+1)])
+    #     test_info.append([vecs[i], allCenter, 0, 0, 20*(3-i), 20*(3-i)])
     # visualization.best_result_visualization(stls, test_info, args.color)
     
     
@@ -83,7 +93,7 @@ def screw_program(args):
     
     # rf_path_info_v3 = path_program.refine_path_info_v3(path_info, all_pcds)
     # visualization.best_result_visualization(stls, path_info, args.color)
-    rf_path_info_v4 = core.refine_path_info_v4(path_info, rest_pcds, rest_pcds_for_explore)
+    rf_path_info_v4 = core.refine_path_info_v4(stls, path_info, rest_pcds, rest_pcds_for_explore)
     tmp_path_info = core.add_screw_length(path_info, all_pcds)
     for i in range(min(len(tmp_path_info), len(rf_path_info_v4))):
         print("normal length1:%.2fmm, normal length2:%.2fmm, \nour method length1:%.2fmm, our method length2:%.2fmm"

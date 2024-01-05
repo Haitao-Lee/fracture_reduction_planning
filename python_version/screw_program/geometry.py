@@ -290,3 +290,24 @@ def segment_3d_dist(p1, p2, q1, q2):
         return np.abs(min(np.sqrt(np.abs(l12**2 - ((lq**2 + l12**2 - l11**2)/lq/2)**2)),
                           np.sqrt(np.abs(l22**2 - ((lq**2 + l22**2 - l21**2)/lq/2)**2))))
     return proj_dist
+
+
+def extract_batch_close_points(point_cloud1, point_cloud2, threshold_distance, batch_size=10000):
+    close_points = []
+    for i in range(0, len(point_cloud1), batch_size):
+        batch_points1 = point_cloud1[i:i+batch_size]
+        distances = np.linalg.norm(batch_points1[:, np.newaxis] - point_cloud2, axis=-1)
+        close_points_indices = np.argwhere(distances < threshold_distance)
+        close_points.extend(batch_points1[close_points_indices[:, 0]])
+
+    return np.array(close_points)
+
+
+def extract_close_points(point_cloud1, point_cloud2, threshold_distance):
+    # 计算两组点之间的距离矩阵
+    distances = np.linalg.norm(point_cloud1[:, np.newaxis] - point_cloud2, axis=-1)
+    # 找到距离小于指定值的索引
+    close_points_indices = np.argwhere(distances < threshold_distance)
+    # 提取满足条件的点
+    close_points = point_cloud1[close_points_indices[:, 0]]
+    return close_points

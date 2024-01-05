@@ -17,7 +17,7 @@ def screw_program(stl_folder, pcd_folder):
     rest_pcds = data_preprocess_software.downSample(rest_pcds)
     rest_pcds_for_explore = data_preprocess_software.downSample(rest_pcds, voxel_size=2*screw_setting.voxel_size)
     path_info = core_software.initial_program(frac_pcds, all_pcds, rest_pcds)
-    optimal_info = core_software.get_optimal_info(path_info, rest_pcds, rest_pcds_for_explore, di_center=None)
+    optimal_info = core_software.get_optimal_info(stls, path_info, rest_pcds, rest_pcds_for_explore, di_center=None)
     visualization_software.best_result_visualization(stls, optimal_info)
     screw_actors = []
     screw_info = []
